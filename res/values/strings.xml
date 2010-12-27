@@ -1,7 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="Server">WebDAV server path:</string>
+    <string name="Server">WebDAV server path and folder:</string>
     <string name="app_name">SendToWebDAV</string>
-<string name="User">Username:</string>
-<string name="Pass">Password</string>
+	<string name="User">Username:</string>
+	<string name="Pass">Password:</string>
+	<string name="saveButton">Save</string>
 </resources>

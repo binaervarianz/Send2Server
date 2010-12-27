@@ -1,9 +1,5 @@
 package de.binaervarianz.sendtowebdav;
 
-import com.googlecode.sardine.Sardine;
-import com.googlecode.sardine.SardineFactory;
-import com.googlecode.sardine.util.SardineException;
-
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.DialogInterface;
@@ -25,7 +21,8 @@ public class SendToServer extends Activity {
         	if (extras.containsKey(Intent.EXTRA_TEXT)) {
         		url += extras.getString(Intent.EXTRA_TEXT);
         	}
-        
+        	
+/*        
         	try {
 				Sardine webdav = SardineFactory.begin("testuser", "testpasswd");
 				webdav.put("https://yourdomain/remotefilename.txt", url.getBytes());
@@ -33,7 +30,7 @@ public class SendToServer extends Activity {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
-
+*/
         	
         AlertDialog.Builder alertDialogBuilder = new  AlertDialog.Builder(this);
         alertDialogBuilder.setTitle("Send URL...");

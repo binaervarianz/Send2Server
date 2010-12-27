@@ -1,22 +1,29 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:orientation="vertical"
-    android:layout_width="fill_parent"
-    android:layout_height="fill_parent"
-    >
-<TextView android:layout_width="fill_parent" android:layout_height="wrap_content" android:text="@string/Server"/><EditText android:id="@+id/WebDAVServer" android:text="@+id/WebDAVServer" android:visibility="visible" android:layout_height="wrap_content" android:layout_width="fill_parent"></EditText>
+	android:orientation="vertical" android:layout_width="fill_parent"
+	android:layout_height="fill_parent">
+	
+	<TextView android:layout_width="fill_parent"
+		android:layout_height="wrap_content" android:text="@string/Server" />
+	<EditText android:id="@+id/WebDAVServer"
+		android:visibility="visible" android:layout_height="wrap_content"
+		android:layout_width="fill_parent"></EditText>
 
-<TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/User"></TextView><EditText android:layout_height="wrap_content" android:layout_width="fill_parent" android:id="@+id/user_name_input" android:text="@+id/Username"></EditText>
-<TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/Pass"></TextView><EditText android:layout_height="wrap_content" android:layout_width="fill_parent" android:id="@+id/pass_input" android:text="@+id/Password"></EditText>
+	<TextView android:layout_width="wrap_content"
+		android:layout_height="wrap_content" android:text="@string/User"></TextView>
+	<EditText android:layout_height="wrap_content"
+		android:layout_width="fill_parent" android:id="@+id/user_name_input"></EditText>
+		
+	<TextView android:layout_width="wrap_content"
+		android:layout_height="wrap_content" android:text="@string/Pass"></TextView>
+	<EditText android:layout_height="wrap_content"
+		android:layout_width="fill_parent" android:id="@+id/pass_input"></EditText>
 
-
-
-
-
-
-
-
-<RelativeLayout android:id="@+id/RelativeLayout01" android:layout_height="wrap_content" android:layout_width="fill_parent"><Button android:text="@+id/Button01" android:id="@+id/Button01" android:layout_width="wrap_content" android:layout_height="wrap_content" android:clickable="true"></Button><Button android:layout_width="wrap_content" android:text="@+id/Button02" android:id="@+id/Button02" android:layout_height="wrap_content" android:layout_toRightOf="@+id/Button01"></Button>
-</RelativeLayout>
+	<RelativeLayout android:id="@+id/RelativeLayout01"
+		android:layout_height="wrap_content" android:layout_width="fill_parent">
+		<Button android:text="@string/saveButton" android:id="@+id/saveButton"
+			android:layout_width="wrap_content" android:layout_height="wrap_content"
+			android:clickable="true"></Button>
+	</RelativeLayout>
 
 </LinearLayout>

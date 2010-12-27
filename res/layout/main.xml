@@ -5,9 +5,9 @@
 	
 	<TextView android:layout_width="fill_parent"
 		android:layout_height="wrap_content" android:text="@string/Server" />
-	<EditText android:id="@+id/WebDAVServer"
+	<EditText android:id="@+id/WebDAVServer" android:text="@string/ServerDefault"
 		android:visibility="visible" android:layout_height="wrap_content"
-		android:layout_width="fill_parent"></EditText>
+		android:layout_width="fill_parent" android:inputType="textUri"></EditText>
 
 	<TextView android:layout_width="wrap_content"
 		android:layout_height="wrap_content" android:text="@string/User"></TextView>
@@ -17,7 +17,10 @@
 	<TextView android:layout_width="wrap_content"
 		android:layout_height="wrap_content" android:text="@string/Pass"></TextView>
 	<EditText android:layout_height="wrap_content"
-		android:layout_width="fill_parent" android:id="@+id/pass_input"></EditText>
+		android:layout_width="fill_parent" android:id="@+id/pass_input" android:inputType="textPassword" android:password="true"></EditText>
+
+	<TextView android:layout_width="wrap_content"
+		android:layout_height="wrap_content"></TextView>
 
 	<RelativeLayout android:id="@+id/RelativeLayout01"
 		android:layout_height="wrap_content" android:layout_width="fill_parent">

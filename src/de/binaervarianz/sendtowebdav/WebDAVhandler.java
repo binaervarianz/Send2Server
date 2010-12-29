@@ -39,6 +39,7 @@ public class WebDAVhandler {
 		    DefaultHttpClient http = new DefaultHttpClient();
 		    http.setCredentialsProvider(credProvider);
 		    //
+		    Log.d(TAG, serverURI+path+filename);
 		    HttpPut put = new HttpPut(serverURI+path+filename);
 		    try {
 		        put.setEntity(new StringEntity(data, "UTF8"));

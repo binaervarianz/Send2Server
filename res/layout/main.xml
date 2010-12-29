@@ -2,10 +2,10 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
 	android:orientation="vertical" android:layout_width="fill_parent"
 	android:layout_height="fill_parent">
-	
+
 	<TextView android:layout_width="fill_parent"
 		android:layout_height="wrap_content" android:text="@string/Server" />
-	<EditText android:id="@+id/WebDAVServer" android:text="@string/ServerDefault"
+	<EditText android:id="@+id/server_uri_input" android:text="@string/ServerDefault"
 		android:visibility="visible" android:layout_height="wrap_content"
 		android:layout_width="fill_parent" android:inputType="textUri"></EditText>
 
@@ -13,20 +13,23 @@
 		android:layout_height="wrap_content" android:text="@string/User"></TextView>
 	<EditText android:layout_height="wrap_content"
 		android:layout_width="fill_parent" android:id="@+id/user_name_input"></EditText>
-		
+
 	<TextView android:layout_width="wrap_content"
 		android:layout_height="wrap_content" android:text="@string/Pass"></TextView>
 	<EditText android:layout_height="wrap_content"
-		android:layout_width="fill_parent" android:id="@+id/pass_input" android:inputType="textPassword" android:password="true"></EditText>
+		android:layout_width="fill_parent" android:id="@+id/pass_input"
+		android:inputType="textPassword" android:password="true"></EditText>
 
 	<TextView android:layout_width="wrap_content"
 		android:layout_height="wrap_content"></TextView>
 
-	<RelativeLayout android:id="@+id/RelativeLayout01"
-		android:layout_height="wrap_content" android:layout_width="fill_parent">
+	<LinearLayout android:id="@+id/LinearLayout01" android:orientation="horizontal"
+		android:layout_width="fill_parent" android:layout_height="wrap_content">
 		<Button android:text="@string/saveButton" android:id="@+id/saveButton"
 			android:layout_width="wrap_content" android:layout_height="wrap_content"
 			android:clickable="true"></Button>
-	</RelativeLayout>
-
+		<Button android:text="@string/testButton" android:id="@+id/testButton"
+			android:layout_width="wrap_content" android:layout_height="wrap_content"
+			android:clickable="true"></Button>
+	</LinearLayout>
 </LinearLayout>

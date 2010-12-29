@@ -6,4 +6,5 @@
 	<string name="User">Username:</string>
 	<string name="Pass">Password:</string>
 	<string name="saveButton">Save</string>
+	<string name="testButton">Test</string>
 </resources>

@@ -9,6 +9,13 @@ import android.widget.Button;
 import android.widget.EditText;
 
 public class ConfigWebDAV extends Activity {
+	private final String TAG = this.getClass().getName();
+	
+	public static final String PREFS_PRIVATE = "PREFS_PRIVATE";
+	public static final String KEY_SERVER_URI = "SERVER_URI";
+	public static final String KEY_USERNAME = "USERNAME";
+	public static final String KEY_PASSWORD = "PASSWORD";
+	
     /** Called when the activity is first created. */
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -16,10 +23,10 @@ public class ConfigWebDAV extends Activity {
         setContentView(R.layout.main);
         
 		// Restore preferences
-	    SharedPreferences settings = getPreferences(Context.MODE_PRIVATE);
-	    ((EditText)findViewById(R.id.server_uri_input)).setText(settings.getString("serverURI", "https://"));
-	    ((EditText)findViewById(R.id.user_name_input)).setText(settings.getString("username", ""));
-	    ((EditText)findViewById(R.id.pass_input)).setText(settings.getString("password", ""));
+	    SharedPreferences settings = getSharedPreferences(PREFS_PRIVATE, Context.MODE_PRIVATE);
+	    ((EditText)findViewById(R.id.server_uri_input)).setText(settings.getString(KEY_SERVER_URI, "https://"));
+	    ((EditText)findViewById(R.id.user_name_input)).setText(settings.getString(KEY_USERNAME, ""));
+	    ((EditText)findViewById(R.id.pass_input)).setText(settings.getString(KEY_PASSWORD, ""));
 	    
         final Button button = (Button) findViewById(R.id.saveButton);
         button.setOnClickListener(new View.OnClickListener() {
@@ -28,11 +35,11 @@ public class ConfigWebDAV extends Activity {
             	
             	// safe the preferences
         		// We need an Editor object to make preference changes.
-        	    SharedPreferences settings = getPreferences(Context.MODE_PRIVATE);
+        	    SharedPreferences settings = getSharedPreferences(PREFS_PRIVATE, Context.MODE_PRIVATE);
         	    SharedPreferences.Editor editor = settings.edit();
-        	    editor.putString("serverURI", ((EditText)findViewById(R.id.server_uri_input)).getText().toString());
-        	    editor.putString("username", ((EditText)findViewById(R.id.user_name_input)).getText().toString());
-        	    editor.putString("password", ((EditText)findViewById(R.id.pass_input)).getText().toString());
+        	    editor.putString(KEY_SERVER_URI, ((EditText)findViewById(R.id.server_uri_input)).getText().toString());
+        	    editor.putString(KEY_USERNAME, ((EditText)findViewById(R.id.user_name_input)).getText().toString());
+        	    editor.putString(KEY_PASSWORD, ((EditText)findViewById(R.id.pass_input)).getText().toString());
         	    
         	    // Commit the edits!
         	    editor.commit();
@@ -47,11 +54,11 @@ public class ConfigWebDAV extends Activity {
             	
             	// safe the preferences
         		// We need an Editor object to make preference changes.
-        	    SharedPreferences settings = getPreferences(Context.MODE_PRIVATE);
+        	    SharedPreferences settings = getSharedPreferences(PREFS_PRIVATE, Context.MODE_PRIVATE);
         	    SharedPreferences.Editor editor = settings.edit();
-        	    editor.putString("serverURI", ((EditText)findViewById(R.id.server_uri_input)).getText().toString());
-        	    editor.putString("username", ((EditText)findViewById(R.id.user_name_input)).getText().toString());
-        	    editor.putString("password", ((EditText)findViewById(R.id.pass_input)).getText().toString());
+        	    editor.putString(KEY_SERVER_URI, ((EditText)findViewById(R.id.server_uri_input)).getText().toString());
+        	    editor.putString(KEY_USERNAME, ((EditText)findViewById(R.id.user_name_input)).getText().toString());
+        	    editor.putString(KEY_PASSWORD, ((EditText)findViewById(R.id.pass_input)).getText().toString());
         	    
         	    // Commit the edits!
         	    editor.commit();

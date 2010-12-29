@@ -21,10 +21,10 @@ public class SendToServer extends Activity {
 	public void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 
-		SharedPreferences settings = getPreferences(Context.MODE_PRIVATE);
-		String serverURI = settings.getString("serverURI", "https://");
-		String user = settings.getString("username", "");
-		String pass = settings.getString("password", "");
+		SharedPreferences settings = getSharedPreferences(ConfigWebDAV.PREFS_PRIVATE, Context.MODE_PRIVATE);
+		String serverURI = settings.getString(ConfigWebDAV.KEY_SERVER_URI, "https://");
+		String user = settings.getString(ConfigWebDAV.KEY_USERNAME, "");
+		String pass = settings.getString(ConfigWebDAV.KEY_PASSWORD, "");
 
 		if (serverURI.equals("https://") || user.equals("") || pass.equals("")) {
 			// TODO: break
@@ -32,8 +32,7 @@ public class SendToServer extends Activity {
 		
 		Log.d(TAG, "context: "+this.getApplicationContext().toString());
 		Log.d(TAG, "setting: "+serverURI+user+pass);
-		//httpHandler = new WebDAVhandler(serverURI, user, pass);
-		httpHandler = new WebDAVhandler("https://mario.binaervarianz.de/webdav/", "aaa", "bbb");
+		httpHandler = new WebDAVhandler(serverURI, user, pass);
 
 		Intent intent = getIntent();
 		Bundle extras = intent.getExtras();

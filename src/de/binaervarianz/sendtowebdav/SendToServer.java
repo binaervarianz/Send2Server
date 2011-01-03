@@ -1,6 +1,11 @@
 package de.binaervarianz.sendtowebdav;
 
+import java.io.IOException;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.Date;
+
+import org.apache.http.client.ClientProtocolException;
 
 import android.app.Activity;
 import android.app.AlertDialog;
@@ -11,6 +16,7 @@ import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.text.format.DateFormat;
 import android.util.Log;
+import android.widget.Toast;
 
 public class SendToServer extends Activity {
 	private final String TAG = this.getClass().getName();
@@ -21,17 +27,20 @@ public class SendToServer extends Activity {
 	public void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 
+		// read preferences
 		SharedPreferences settings = getSharedPreferences(ConfigWebDAV.PREFS_PRIVATE, Context.MODE_PRIVATE);
 		String serverURI = settings.getString(ConfigWebDAV.KEY_SERVER_URI, "https://");
 		String user = settings.getString(ConfigWebDAV.KEY_USERNAME, "");
 		String pass = settings.getString(ConfigWebDAV.KEY_PASSWORD, "");
 
-		if (serverURI.equals("https://") || user.equals("") || pass.equals("")) {
-			// TODO: break
+		try {
+			new URI(serverURI);
+		} catch (URISyntaxException e) {
+			Log.e(TAG, "URISyntaxException: "+e);
+			// TODO: user error message (maybe also do this check when testing/saving
+			return;
 		}
 		
-		Log.d(TAG, "context: "+this.getApplicationContext().toString());
-		Log.d(TAG, "setting: "+serverURI+user+pass);
 		httpHandler = new WebDAVhandler(serverURI, user, pass);
 
 		Intent intent = getIntent();
@@ -43,8 +52,19 @@ public class SendToServer extends Activity {
 				url += extras.getString(Intent.EXTRA_TEXT);
 			}
 
-			httpHandler.putFile("URL-"+DateFormat.format("yyyyMMddhhmmss", new Date())+".txt", "", url);
+			try {
+				httpHandler.putFile("URL-"+DateFormat.format("yyyyMMddhhmmss", new Date())+".txt", "", url);
+			} catch (ClientProtocolException e) {
+				Toast.makeText(this.getApplicationContext(), "ClientProtocolException: "+e, Toast.LENGTH_LONG);
+				Log.e(TAG, "ClientProtocolException: "+e);
+			} catch (IOException e) {
+				Toast.makeText(this.getApplicationContext(), "IOException: "+e, Toast.LENGTH_LONG);
+				Log.e(TAG, "IOException: "+e);
+			}
 			
+			Toast.makeText(this.getApplicationContext(), "Data send!", Toast.LENGTH_SHORT);
+
+			/*
 			AlertDialog.Builder alertDialogBuilder = new AlertDialog.Builder(this);
 			alertDialogBuilder.setTitle("Send URL...");
 			alertDialogBuilder.setMessage(url).setCancelable(false)
@@ -63,6 +83,7 @@ public class SendToServer extends Activity {
 							});
 			AlertDialog alertDialog = alertDialogBuilder.create();
 			alertDialog.show();
+			*/
 		}
 	}
 }

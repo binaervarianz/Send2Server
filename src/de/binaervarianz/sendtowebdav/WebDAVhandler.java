@@ -8,6 +8,7 @@ import org.apache.http.auth.AuthScope;
 import org.apache.http.auth.UsernamePasswordCredentials;
 import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.CredentialsProvider;
+import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPut;
 import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.BasicCredentialsProvider;
@@ -29,35 +30,49 @@ public class WebDAVhandler {
 		this.pass = pass;
 	}
 	
-	public int putFile(String filename, String path, String data) {
+	public void putFile(String filename, String path, String data)
+			throws ClientProtocolException, IOException {
+		//
+		CredentialsProvider credProvider = new BasicCredentialsProvider();
+		credProvider.setCredentials(new AuthScope(AuthScope.ANY_HOST, AuthScope.ANY_PORT),
+				new UsernamePasswordCredentials(user, pass));
+		//
+		DefaultHttpClient http = new DefaultHttpClient();
+		http.setCredentialsProvider(credProvider);
+		//
+		HttpPut put = new HttpPut(serverURI + path + filename);
 		try {
-		    //
-		    CredentialsProvider credProvider = new BasicCredentialsProvider();
-		    credProvider.setCredentials(new AuthScope(AuthScope.ANY_HOST, AuthScope.ANY_PORT),
-		        new UsernamePasswordCredentials(user, pass));
-		    //
-		    DefaultHttpClient http = new DefaultHttpClient();
-		    http.setCredentialsProvider(credProvider);
-		    //
-		    Log.d(TAG, serverURI+path+filename);
-		    HttpPut put = new HttpPut(serverURI+path+filename);
-		    try {
-		        put.setEntity(new StringEntity(data, "UTF8"));
-		    } catch (UnsupportedEncodingException e) {
-		        Log.e(TAG, "UnsupportedEncoding: ", e);
-		    }
-		    put.addHeader("Content-type","text/plain");
-		    HttpResponse response = http.execute(put);
-		    Log.d(TAG, "This is what we get back:"+response.getStatusLine().toString()+", "+response.getEntity().toString());
-		} catch (ClientProtocolException e) {
-		    //
-		    Log.d(TAG, "Client protocol exception", e);
-		} catch (IOException e) {
-		    //
-		    Log.d(TAG, "IOException", e);
+			put.setEntity(new StringEntity(data, "UTF8"));
+		} catch (UnsupportedEncodingException e) {
+			Log.e(TAG, "UnsupportedEncoding: ", e);
 		}
+		put.addHeader("Content-type", "text/plain");
+		//
+		HttpResponse response = http.execute(put);
+		
+		// TODO: just send every response as exception for now
+		Log.d(TAG, "StatusLine: "
+				+ response.getStatusLine().toString() + ", "
+				+ response.getEntity().toString());
 
-		return 0;
+		// TODO: user hint: check permissions (eg. show the HTTP status code)
+		// TODO: do we need/make use of the entity
+	}
+	
+	public void testConnection() throws ClientProtocolException, IOException {
+		CredentialsProvider credProvider = new BasicCredentialsProvider();
+		credProvider.setCredentials(new AuthScope(AuthScope.ANY_HOST, AuthScope.ANY_PORT),
+				new UsernamePasswordCredentials(user, pass));
+		//
+		DefaultHttpClient http = new DefaultHttpClient();
+		http.setCredentialsProvider(credProvider);
+		//
+		HttpGet get = new HttpGet(serverURI);
+		//
+		HttpResponse response = http.execute(get);
+		response.getStatusLine().getStatusCode();
+		response.getStatusLine().getReasonPhrase();
+		// TODO: evaluate return status code
 	}
 
 	public String getServerURI() {

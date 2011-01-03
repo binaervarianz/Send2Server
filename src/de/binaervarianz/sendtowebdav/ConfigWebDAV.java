@@ -1,12 +1,18 @@
 package de.binaervarianz.sendtowebdav;
 
+import java.io.IOException;
+
+import org.apache.http.client.ClientProtocolException;
+
 import android.app.Activity;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.Toast;
 
 public class ConfigWebDAV extends Activity {
 	private final String TAG = this.getClass().getName();
@@ -28,41 +34,62 @@ public class ConfigWebDAV extends Activity {
 	    ((EditText)findViewById(R.id.user_name_input)).setText(settings.getString(KEY_USERNAME, ""));
 	    ((EditText)findViewById(R.id.pass_input)).setText(settings.getString(KEY_PASSWORD, ""));
 	    
-        final Button button = (Button) findViewById(R.id.saveButton);
-        button.setOnClickListener(new View.OnClickListener() {
+	    // save button
+        final Button saveButton = (Button) findViewById(R.id.saveButton);
+        saveButton.setOnClickListener(new View.OnClickListener() {
             public void onClick(View v) {
-            	// TODO: check server connection and user/pass
+            	String serverURI = ((EditText)findViewById(R.id.server_uri_input)).getText().toString();
+            	String user = ((EditText)findViewById(R.id.user_name_input)).getText().toString();
+            	String pass = ((EditText)findViewById(R.id.pass_input)).getText().toString();
             	
-            	// safe the preferences
-        		// We need an Editor object to make preference changes.
+//            	if (!checkConnection(v, serverURI, user, pass))
+ //           		return;
+            	
+            	// save the preferences
         	    SharedPreferences settings = getSharedPreferences(PREFS_PRIVATE, Context.MODE_PRIVATE);
         	    SharedPreferences.Editor editor = settings.edit();
-        	    editor.putString(KEY_SERVER_URI, ((EditText)findViewById(R.id.server_uri_input)).getText().toString());
-        	    editor.putString(KEY_USERNAME, ((EditText)findViewById(R.id.user_name_input)).getText().toString());
-        	    editor.putString(KEY_PASSWORD, ((EditText)findViewById(R.id.pass_input)).getText().toString());
+        	    editor.putString(KEY_SERVER_URI, serverURI);
+        	    editor.putString(KEY_USERNAME, user);
+        	    editor.putString(KEY_PASSWORD, pass); // TODO: encrypt pwd
         	    
         	    // Commit the edits!
         	    editor.commit();
+        	    
+        	    // TODO: modal spinning wheel when testing connection
+        	    Toast.makeText(v.getContext(), "Settings saved!", Toast.LENGTH_SHORT);
             }
         });
         
-        final Button button1 = (Button) findViewById(R.id.testButton);
-        button1.setOnClickListener(new View.OnClickListener() {
+        // test connection button
+        final Button testButton = (Button) findViewById(R.id.testButton);
+        testButton.setOnClickListener(new View.OnClickListener() {
             public void onClick(View v) {
-            	// checkServerConnection();
-            	// TODO: check server connection and user/pass
+            	String serverURI = ((EditText)findViewById(R.id.server_uri_input)).getText().toString();
+            	String user = ((EditText)findViewById(R.id.user_name_input)).getText().toString();
+            	String pass = ((EditText)findViewById(R.id.pass_input)).getText().toString();
             	
-            	// safe the preferences
-        		// We need an Editor object to make preference changes.
-        	    SharedPreferences settings = getSharedPreferences(PREFS_PRIVATE, Context.MODE_PRIVATE);
-        	    SharedPreferences.Editor editor = settings.edit();
-        	    editor.putString(KEY_SERVER_URI, ((EditText)findViewById(R.id.server_uri_input)).getText().toString());
-        	    editor.putString(KEY_USERNAME, ((EditText)findViewById(R.id.user_name_input)).getText().toString());
-        	    editor.putString(KEY_PASSWORD, ((EditText)findViewById(R.id.pass_input)).getText().toString());
-        	    
-        	    // Commit the edits!
-        	    editor.commit();
+            	if (!checkConnection(v, serverURI, user, pass))
+            		return;
             }
         });
+    }
+    
+    private boolean checkConnection(View v, String serverURI, String user, String pass) {
+    	WebDAVhandler httpHandler = new WebDAVhandler(serverURI, user, pass);
+    	
+    	try {
+			httpHandler.testConnection();
+		} catch (ClientProtocolException e) {
+			Toast.makeText(v.getContext(), "ClientProtocolException: "+e, Toast.LENGTH_LONG);
+			Toast.makeText(v.getContext(), "Settings NOT saved!", Toast.LENGTH_LONG);
+			Log.e(TAG, "ClientProtocolException: "+e);
+			return false;
+		} catch (IOException e) {
+			Toast.makeText(v.getContext(), "IOException: "+e, Toast.LENGTH_LONG);
+			Toast.makeText(v.getContext(), "Settings NOT saved!", Toast.LENGTH_LONG);
+			Log.e(TAG, "IOException: "+e);
+			return false;
+		}
+		return true;
     }
 }

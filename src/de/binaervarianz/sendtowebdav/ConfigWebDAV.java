@@ -44,7 +44,7 @@ public class ConfigWebDAV extends Activity {
             	
 //            	if (!checkConnection(v, serverURI, user, pass))
  //           		return;
-            	
+    
             	// save the preferences
         	    SharedPreferences settings = getSharedPreferences(PREFS_PRIVATE, Context.MODE_PRIVATE);
         	    SharedPreferences.Editor editor = settings.edit();
@@ -56,7 +56,8 @@ public class ConfigWebDAV extends Activity {
         	    editor.commit();
         	    
         	    // TODO: modal spinning wheel when testing connection
-        	    Toast.makeText(v.getContext(), "Settings saved!", Toast.LENGTH_SHORT);
+        	    Toast toast = Toast.makeText(v.getContext(), "Settings saved!", Toast.LENGTH_SHORT);
+        	    toast.show();
             }
         });
         

@@ -82,6 +82,14 @@ public class ConfigWebDAV extends Activity {
         });
     }
     
+    /**
+     * Call the testConnectivity Method of the WebDAVhandler and wait for exceptions
+     * @param v the view
+     * @param serverURI URL to test (doesn't need to be saved)
+     * @param user
+     * @param pass
+     * @return boolean, true for test passed
+     */
     private boolean checkConnection(View v, String serverURI, String user, String pass) {
     	WebDAVhandler httpHandler = new WebDAVhandler(serverURI, user, pass);
     	

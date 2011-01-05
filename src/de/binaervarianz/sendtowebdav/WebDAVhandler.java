@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 
 import org.apache.http.HttpResponse;
+import org.apache.http.StatusLine;
 import org.apache.http.auth.AuthScope;
 import org.apache.http.auth.UsernamePasswordCredentials;
 import org.apache.http.client.ClientProtocolException;
@@ -15,6 +16,7 @@ import org.apache.http.impl.client.BasicCredentialsProvider;
 import org.apache.http.impl.client.DefaultHttpClient;
 
 import android.util.Log;
+import android.widget.Toast;
 
 public class WebDAVhandler {
 	private final String TAG = this.getClass().getName();
@@ -30,11 +32,11 @@ public class WebDAVhandler {
 		this.pass = pass;
 	}
 	
-	public void putFile(String filename, String path, String data)
+	public boolean putFile(String filename, String path, String data)
 			throws ClientProtocolException, IOException {
 		//
-		CredentialsProvider credProvider = new BasicCredentialsProvider();
-		credProvider.setCredentials(new AuthScope(AuthScope.ANY_HOST, AuthScope.ANY_PORT),
+		BasicCredentialsProvider credProvider = new BasicCredentialsProvider();
+		credProvider.setCredentials(AuthScope.ANY,
 				new UsernamePasswordCredentials(user, pass));
 		//
 		DefaultHttpClient http = new DefaultHttpClient();
@@ -49,14 +51,19 @@ public class WebDAVhandler {
 		put.addHeader("Content-type", "text/plain");
 		//
 		HttpResponse response = http.execute(put);
-		
+		StatusLine statResp = response.getStatusLine();		
+
 		// TODO: just send every response as exception for now
 		Log.d(TAG, "StatusLine: "
 				+ response.getStatusLine().toString() + ", "
-				+ response.getEntity().toString());
+				+ response.getEntity().toString()
+				+ " URL: " + serverURI);
 
 		// TODO: user hint: check permissions (eg. show the HTTP status code)
 		// TODO: do we need/make use of the entity
+		
+		// return boolean from http response 
+		return (statResp.getStatusCode() >= 400);
 	}
 	
 	public void testConnection() throws ClientProtocolException, IOException {

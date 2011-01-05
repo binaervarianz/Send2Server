@@ -44,7 +44,12 @@ public class ConfigWebDAV extends Activity {
             	
 //            	if (!checkConnection(v, serverURI, user, pass))
  //           		return;
-    
+            	
+            	//sanitize the URL string
+            	//append '/' if not already present
+            	if  (!serverURI.trim().endsWith("/"))
+            		serverURI = serverURI.trim() + "/";
+            	
             	// save the preferences
         	    SharedPreferences settings = getSharedPreferences(PREFS_PRIVATE, Context.MODE_PRIVATE);
         	    SharedPreferences.Editor editor = settings.edit();
@@ -71,6 +76,7 @@ public class ConfigWebDAV extends Activity {
             	
             	if (!checkConnection(v, serverURI, user, pass))
             		return;
+            	// TODO give the user some feedback here 
             }
         });
     }

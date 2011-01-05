@@ -55,14 +55,14 @@ public class SendToServer extends Activity {
 			try {
 				httpHandler.putFile("URL-"+DateFormat.format("yyyyMMddhhmmss", new Date())+".txt", "", url);
 			} catch (ClientProtocolException e) {
-				Toast.makeText(this.getApplicationContext(), "ClientProtocolException: "+e, Toast.LENGTH_LONG);
+				Toast.makeText(this.getApplicationContext(), "ClientProtocolException: "+e, Toast.LENGTH_LONG).show();
 				Log.e(TAG, "ClientProtocolException: "+e);
 			} catch (IOException e) {
-				Toast.makeText(this.getApplicationContext(), "IOException: "+e, Toast.LENGTH_LONG);
+				Toast.makeText(this.getApplicationContext(), "IOException: "+e, Toast.LENGTH_LONG).show();
 				Log.e(TAG, "IOException: "+e);
 			}
 			
-			Toast.makeText(this.getApplicationContext(), "Data send!", Toast.LENGTH_SHORT);
+			Toast.makeText(this.getApplicationContext(), "Data send!", Toast.LENGTH_SHORT).show();
 
 			/*
 			AlertDialog.Builder alertDialogBuilder = new AlertDialog.Builder(this);

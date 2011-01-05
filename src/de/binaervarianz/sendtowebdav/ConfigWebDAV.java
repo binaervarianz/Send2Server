@@ -61,8 +61,7 @@ public class ConfigWebDAV extends Activity {
         	    editor.commit();
         	    
         	    // TODO: modal spinning wheel when testing connection
-        	    Toast toast = Toast.makeText(v.getContext(), "Settings saved!", Toast.LENGTH_SHORT);
-        	    toast.show();
+        	    Toast.makeText(v.getContext(), "Settings saved!", Toast.LENGTH_SHORT).show();
             }
         });
         
@@ -76,7 +75,9 @@ public class ConfigWebDAV extends Activity {
             	
             	if (!checkConnection(v, serverURI, user, pass))
             		return;
-            	// TODO give the user some feedback here 
+
+            	Toast.makeText(v.getContext(), "Connection test successful!", Toast.LENGTH_SHORT).show();
+
             }
         });
     }
@@ -87,14 +88,19 @@ public class ConfigWebDAV extends Activity {
     	try {
 			httpHandler.testConnection();
 		} catch (ClientProtocolException e) {
-			Toast.makeText(v.getContext(), "ClientProtocolException: "+e, Toast.LENGTH_LONG);
-			Toast.makeText(v.getContext(), "Settings NOT saved!", Toast.LENGTH_LONG);
+			Toast.makeText(v.getContext(), "ClientProtocolException: "+e, Toast.LENGTH_LONG).show();
+			Toast.makeText(v.getContext(), "Settings NOT saved!", Toast.LENGTH_LONG).show();
 			Log.e(TAG, "ClientProtocolException: "+e);
 			return false;
 		} catch (IOException e) {
-			Toast.makeText(v.getContext(), "IOException: "+e, Toast.LENGTH_LONG);
-			Toast.makeText(v.getContext(), "Settings NOT saved!", Toast.LENGTH_LONG);
+			Toast.makeText(v.getContext(), "IOException: "+e, Toast.LENGTH_LONG).show();
+			Toast.makeText(v.getContext(), "Settings NOT saved!", Toast.LENGTH_LONG).show();
 			Log.e(TAG, "IOException: "+e);
+			return false;
+		} catch (IllegalArgumentException e) {
+			Toast.makeText(v.getContext(), "IllegalArgumentException: "+e, Toast.LENGTH_LONG).show();
+			Toast.makeText(v.getContext(), "Settings NOT saved!", Toast.LENGTH_LONG).show();
+			Log.e(TAG, "IllegalArgumentException: "+e);
 			return false;
 		}
 		return true;

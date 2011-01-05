@@ -11,9 +11,17 @@ import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.CredentialsProvider;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPut;
+import org.apache.http.conn.ClientConnectionManager;
+import org.apache.http.conn.scheme.PlainSocketFactory;
+import org.apache.http.conn.scheme.Scheme;
+import org.apache.http.conn.scheme.SchemeRegistry;
+import org.apache.http.conn.ssl.SSLSocketFactory;
 import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.BasicCredentialsProvider;
 import org.apache.http.impl.client.DefaultHttpClient;
+import org.apache.http.impl.conn.tsccm.ThreadSafeClientConnManager;
+import org.apache.http.params.BasicHttpParams;
+import org.apache.http.params.HttpParams;
 
 import android.util.Log;
 import android.widget.Toast;
@@ -24,6 +32,7 @@ public class WebDAVhandler {
 	private String serverURI;
 	private String user;
 	private String pass;
+	private boolean trustAllSSLCerts;
 	
 	public WebDAVhandler(String serverURI, String user, String pass) {
 		super();
@@ -38,8 +47,10 @@ public class WebDAVhandler {
 		BasicCredentialsProvider credProvider = new BasicCredentialsProvider();
 		credProvider.setCredentials(AuthScope.ANY,
 				new UsernamePasswordCredentials(user, pass));
+		
 		//
-		DefaultHttpClient http = new DefaultHttpClient();
+	    HttpParams params = new BasicHttpParams();
+		DefaultHttpClient http = new DefaultHttpClient(this.getConManager(params), params);
 		http.setCredentialsProvider(credProvider);
 		//
 		HttpPut put = new HttpPut(serverURI + "/" + path + filename);
@@ -72,7 +83,8 @@ public class WebDAVhandler {
 		credProvider.setCredentials(new AuthScope(AuthScope.ANY_HOST, AuthScope.ANY_PORT),
 				new UsernamePasswordCredentials(user, pass));
 		//
-		DefaultHttpClient http = new DefaultHttpClient();
+	    HttpParams params = new BasicHttpParams();
+		DefaultHttpClient http = new DefaultHttpClient(this.getConManager(params), params);
 		http.setCredentialsProvider(credProvider);
 		//
 		HttpGet get = new HttpGet(serverURI);
@@ -82,7 +94,14 @@ public class WebDAVhandler {
 		response.getStatusLine().getReasonPhrase();
 		// TODO: evaluate return status code
 	}
-
+	
+	private ClientConnectionManager getConManager (HttpParams params) {
+		SchemeRegistry registry = new SchemeRegistry();
+	    registry.register(new Scheme("http", new PlainSocketFactory(), 80));
+	    registry.register(new Scheme("https", (trustAllSSLCerts ? new TrustAllSocketFactory() : SSLSocketFactory.getSocketFactory()), 443));
+		return new ThreadSafeClientConnManager(params, registry);
+	}
+	
 	public String getServerURI() {
 		return serverURI;
 	}
@@ -105,6 +124,14 @@ public class WebDAVhandler {
 
 	public void setPass(String pass) {
 		this.pass = pass;
+	}
+
+	public boolean isTrustAllSSLCerts() {
+		return trustAllSSLCerts;
+	}
+
+	public void setTrustAllSSLCerts(boolean trustAllSSLCerts) {
+		this.trustAllSSLCerts = trustAllSSLCerts;
 	}
 
 }

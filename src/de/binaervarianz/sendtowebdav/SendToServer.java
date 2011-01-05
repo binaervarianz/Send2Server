@@ -42,6 +42,7 @@ public class SendToServer extends Activity {
 		}
 		
 		httpHandler = new WebDAVhandler(serverURI, user, pass);
+		httpHandler.setTrustAllSSLCerts(true);
 
 		Intent intent = getIntent();
 		Bundle extras = intent.getExtras();

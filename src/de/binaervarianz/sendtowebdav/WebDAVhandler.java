@@ -41,17 +41,19 @@ public class WebDAVhandler {
 		this.pass = pass;
 	}
 	
+	/**
+	 * Connects to the previously saved server address and puts a file with the given name and content there.
+	 * 
+	 * @param filename
+	 * @param path
+	 * @param data : file contents
+	 * @return boolean evaluating the http response code
+	 * @throws ClientProtocolException
+	 * @throws IOException
+	 */
 	public void putFile(String filename, String path, String data)
 			throws IllegalArgumentException, ClientProtocolException, IOException, HttpException {
-		
-		BasicCredentialsProvider credProvider = new BasicCredentialsProvider();
-		credProvider.setCredentials(AuthScope.ANY,
-				new UsernamePasswordCredentials(user, pass));
-		
-	    HttpParams params = new BasicHttpParams();
-		DefaultHttpClient http = new DefaultHttpClient(this.getConManager(params), params);
-		http.setCredentialsProvider(credProvider);
-		
+
 		HttpPut put = new HttpPut(serverURI + "/" + path + filename);
 		try {
 			put.setEntity(new StringEntity(data, "UTF8"));
@@ -59,7 +61,8 @@ public class WebDAVhandler {
 			Log.e(TAG, "UnsupportedEncoding: ", e);
 		}
 		put.addHeader("Content-type", "text/plain");
-		
+
+		DefaultHttpClient http = this.prepareHttpClient(user, pass);
 		HttpResponse response = http.execute(put);
 		StatusLine responseStatus = response.getStatusLine();		
 
@@ -73,17 +76,43 @@ public class WebDAVhandler {
 			throw new HttpException(responseStatus.toString());
 	}
 	
+	/**
+	 * Tests the connection by sending a GET request (no evaluation of results so far, just throwing exceptions if failing)
+	 */
 	public void testConnection() throws IllegalArgumentException, ClientProtocolException, IOException, HttpException {
 		putFile("ConnectionTest-"+DateFormat.format("yyyyMMddhhmmss", new Date())+".txt", "", "please delete!");
 		
 		// TODO: try to silently delete the file again; ignore errors/exceptions along the way
 	}
 	
+	/**
+	 * Creates a new Connection Manager needed for http/https communication
+	 * @param params
+	 * @return
+	 */
 	private ClientConnectionManager getConManager (HttpParams params) {
 		SchemeRegistry registry = new SchemeRegistry();
 	    registry.register(new Scheme("http", new PlainSocketFactory(), 80));
 	    registry.register(new Scheme("https", (trustAllSSLCerts ? new TrustAllSocketFactory() : SSLSocketFactory.getSocketFactory()), 443));
 		return new ThreadSafeClientConnManager(params, registry);
+	}
+	
+	/**
+	 * Create a DefaultHttpClient instance preconfigured with username and password
+	 * @param user
+	 * @param pass
+	 * @return
+	 */
+	private DefaultHttpClient prepareHttpClient(String user, String pass) {
+		BasicCredentialsProvider credProvider = new BasicCredentialsProvider();
+		credProvider.setCredentials(AuthScope.ANY,
+				new UsernamePasswordCredentials(user, pass));		
+		
+	    HttpParams params = new BasicHttpParams();
+		DefaultHttpClient http = new DefaultHttpClient(this.getConManager(params), params);
+		http.setCredentialsProvider(credProvider);
+		
+		return http;
 	}
 	
 	public String getServerURI() {
@@ -117,5 +146,4 @@ public class WebDAVhandler {
 	public void setTrustAllSSLCerts(boolean trustAllSSLCerts) {
 		this.trustAllSSLCerts = trustAllSSLCerts;
 	}
-
 }

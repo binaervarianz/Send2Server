@@ -72,7 +72,16 @@ public class ConfigWebDAV extends Activity {
         });
     }
     
-    private boolean checkConnection(String serverURI, String user, String pass, boolean trustSSLCerts) {
+    /**
+     * Call the testConnectivity Method of the WebDAVhandler and wait for exceptions
+	 *
+     * @param serverURI URL to test (doesn't need to be saved)
+     * @param user
+     * @param pass
+     * @param trustSSLCerts
+     * @return boolean, true for test passed
+     */
+	private boolean checkConnection(String serverURI, String user, String pass, boolean trustSSLCerts) {
     	WebDAVhandler httpHandler = new WebDAVhandler(serverURI, user, pass);
     	httpHandler.setTrustAllSSLCerts(trustSSLCerts);
     	

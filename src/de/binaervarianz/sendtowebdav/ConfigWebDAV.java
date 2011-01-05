@@ -43,7 +43,7 @@ public class ConfigWebDAV extends Activity {
             	String pass = ((EditText)findViewById(R.id.pass_input)).getText().toString();
             	
 //            	if (!checkConnection(v, serverURI, user, pass))
- //           		return;
+//           		return;
     
             	// save the preferences
         	    SharedPreferences settings = getSharedPreferences(PREFS_PRIVATE, Context.MODE_PRIVATE);
@@ -70,6 +70,8 @@ public class ConfigWebDAV extends Activity {
             	
             	if (!checkConnection(v, serverURI, user, pass))
             		return;
+            	
+            	Toast.makeText(v.getContext(), "Connection test successful!", Toast.LENGTH_SHORT).show();
             }
         });
     }
@@ -88,6 +90,11 @@ public class ConfigWebDAV extends Activity {
 			Toast.makeText(v.getContext(), "IOException: "+e, Toast.LENGTH_LONG).show();
 			Toast.makeText(v.getContext(), "Settings NOT saved!", Toast.LENGTH_LONG).show();
 			Log.e(TAG, "IOException: "+e);
+			return false;
+		} catch (IllegalArgumentException e) {
+			Toast.makeText(v.getContext(), "IllegalArgumentException: "+e, Toast.LENGTH_LONG).show();
+			Toast.makeText(v.getContext(), "Settings NOT saved!", Toast.LENGTH_LONG).show();
+			Log.e(TAG, "IllegalArgumentException: "+e);
 			return false;
 		}
 		return true;

@@ -40,7 +40,7 @@ public class WebDAVhandler {
 		DefaultHttpClient http = new DefaultHttpClient();
 		http.setCredentialsProvider(credProvider);
 		//
-		HttpPut put = new HttpPut(serverURI + path + filename);
+		HttpPut put = new HttpPut(serverURI + "/" + path + filename);
 		try {
 			put.setEntity(new StringEntity(data, "UTF8"));
 		} catch (UnsupportedEncodingException e) {
@@ -59,7 +59,8 @@ public class WebDAVhandler {
 		// TODO: do we need/make use of the entity
 	}
 	
-	public void testConnection() throws ClientProtocolException, IOException {
+	// TODO: how can we check for WebDAV specifically? --> PUT a file (with timestamp)
+	public void testConnection() throws IllegalArgumentException, ClientProtocolException, IOException {
 		CredentialsProvider credProvider = new BasicCredentialsProvider();
 		credProvider.setCredentials(new AuthScope(AuthScope.ANY_HOST, AuthScope.ANY_PORT),
 				new UsernamePasswordCredentials(user, pass));

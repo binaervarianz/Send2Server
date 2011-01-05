@@ -2,14 +2,14 @@ package de.binaervarianz.sendtowebdav;
 
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
+import java.util.Date;
 
+import org.apache.http.HttpException;
 import org.apache.http.HttpResponse;
 import org.apache.http.StatusLine;
 import org.apache.http.auth.AuthScope;
 import org.apache.http.auth.UsernamePasswordCredentials;
 import org.apache.http.client.ClientProtocolException;
-import org.apache.http.client.CredentialsProvider;
-import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPut;
 import org.apache.http.conn.ClientConnectionManager;
 import org.apache.http.conn.scheme.PlainSocketFactory;
@@ -23,8 +23,8 @@ import org.apache.http.impl.conn.tsccm.ThreadSafeClientConnManager;
 import org.apache.http.params.BasicHttpParams;
 import org.apache.http.params.HttpParams;
 
+import android.text.format.DateFormat;
 import android.util.Log;
-import android.widget.Toast;
 
 public class WebDAVhandler {
 	private final String TAG = this.getClass().getName();
@@ -41,18 +41,17 @@ public class WebDAVhandler {
 		this.pass = pass;
 	}
 	
-	public boolean putFile(String filename, String path, String data)
-			throws ClientProtocolException, IOException {
-		//
+	public void putFile(String filename, String path, String data)
+			throws IllegalArgumentException, ClientProtocolException, IOException, HttpException {
+		
 		BasicCredentialsProvider credProvider = new BasicCredentialsProvider();
 		credProvider.setCredentials(AuthScope.ANY,
 				new UsernamePasswordCredentials(user, pass));
 		
-		//
 	    HttpParams params = new BasicHttpParams();
 		DefaultHttpClient http = new DefaultHttpClient(this.getConManager(params), params);
 		http.setCredentialsProvider(credProvider);
-		//
+		
 		HttpPut put = new HttpPut(serverURI + "/" + path + filename);
 		try {
 			put.setEntity(new StringEntity(data, "UTF8"));
@@ -60,39 +59,24 @@ public class WebDAVhandler {
 			Log.e(TAG, "UnsupportedEncoding: ", e);
 		}
 		put.addHeader("Content-type", "text/plain");
-		//
-		HttpResponse response = http.execute(put);
-		StatusLine statResp = response.getStatusLine();		
-
-		// TODO: just send every response as exception for now
-		Log.d(TAG, "StatusLine: "
-				+ response.getStatusLine().toString() + ", "
-				+ response.getEntity().toString()
-				+ " URL: " + serverURI);
-
-		// TODO: user hint: check permissions (eg. show the HTTP status code)
-		// TODO: do we need/make use of the entity
 		
-		// return boolean from http response 
-		return (statResp.getStatusCode() >= 400);
+		HttpResponse response = http.execute(put);
+		StatusLine responseStatus = response.getStatusLine();		
+
+		// debug
+		Log.d(TAG, "StatusLine: "
+				+ responseStatus.toString() + ", "
+				+ " URL: " + serverURI);
+		
+		// evaluate the HTTP response status code
+		if (responseStatus.getStatusCode() >= 400)
+			throw new HttpException(responseStatus.toString());
 	}
 	
-	// TODO: how can we check for WebDAV specifically? --> PUT a file (with timestamp)
-	public void testConnection() throws IllegalArgumentException, ClientProtocolException, IOException {
-		CredentialsProvider credProvider = new BasicCredentialsProvider();
-		credProvider.setCredentials(new AuthScope(AuthScope.ANY_HOST, AuthScope.ANY_PORT),
-				new UsernamePasswordCredentials(user, pass));
-		//
-	    HttpParams params = new BasicHttpParams();
-		DefaultHttpClient http = new DefaultHttpClient(this.getConManager(params), params);
-		http.setCredentialsProvider(credProvider);
-		//
-		HttpGet get = new HttpGet(serverURI);
-		//
-		HttpResponse response = http.execute(get);
-		response.getStatusLine().getStatusCode();
-		response.getStatusLine().getReasonPhrase();
-		// TODO: evaluate return status code
+	public void testConnection() throws IllegalArgumentException, ClientProtocolException, IOException, HttpException {
+		putFile("ConnectionTest-"+DateFormat.format("yyyyMMddhhmmss", new Date())+".txt", "", "please delete!");
+		
+		// TODO: try to silently delete the file again; ignore errors/exceptions along the way
 	}
 	
 	private ClientConnectionManager getConManager (HttpParams params) {

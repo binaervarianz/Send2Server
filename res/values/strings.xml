@@ -2,9 +2,18 @@
 <resources>
     <string name="Server">WebDAV server path and folder:</string>
     <string name="ServerDefault">https://</string>
-    <string name="app_name">#SendToWeb</string>
+    <string name="app_name">#SendToServer</string>
+    <string name="config_app_name">Configure SendToServer</string>
 	<string name="User">Username:</string>
 	<string name="Pass">Password:</string>
 	<string name="saveButton">Save</string>
 	<string name="testButton">Test</string>
+	<string name="deployServerButton">Deploy Server</string>
+	<string name="trustAllSSLCerts">Trust all SSL certificates</string>
+	<string name="data_send">#SendToServer: Data send!</string>
+	<string name="settings_saved">Settings saved!</string>
+	<string name="settings_not_saved">Settings NOT saved!</string>
+	<string name="connection_success">Connection successful!</string>
+	<string name="testing_saving_progress">Testing &amp; Saving. Please wait...</string>
+	<string name="testing_progress">Testing Connection. Please wait...</string>
 </resources>

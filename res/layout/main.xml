@@ -9,6 +9,9 @@
 		android:visibility="visible" android:layout_height="wrap_content"
 		android:layout_width="fill_parent" android:inputType="textUri"></EditText>
 
+	<CheckBox android:id="@+id/trustAllSSLCerts" android:text="@string/trustAllSSLCerts"
+		android:layout_width="wrap_content" android:layout_height="wrap_content"></CheckBox>
+
 	<TextView android:layout_width="wrap_content"
 		android:layout_height="wrap_content" android:text="@string/User"></TextView>
 	<EditText android:layout_height="wrap_content"
@@ -23,13 +26,18 @@
 	<TextView android:layout_width="wrap_content"
 		android:layout_height="wrap_content"></TextView>
 
-	<LinearLayout android:id="@+id/LinearLayout01" android:orientation="horizontal"
-		android:layout_width="fill_parent" android:layout_height="wrap_content">
+	<LinearLayout android:id="@+id/LinearLayout01"
+		android:orientation="horizontal" android:layout_width="fill_parent"
+		android:layout_height="wrap_content">
 		<Button android:text="@string/saveButton" android:id="@+id/saveButton"
 			android:layout_width="wrap_content" android:layout_height="wrap_content"
 			android:clickable="true"></Button>
 		<Button android:text="@string/testButton" android:id="@+id/testButton"
 			android:layout_width="wrap_content" android:layout_height="wrap_content"
 			android:clickable="true"></Button>
+		<Button android:text="@string/deployServerButton" android:id="@+id/deployServerButton"
+			android:layout_width="wrap_content" android:layout_height="wrap_content"
+			android:clickable="true"></Button>
 	</LinearLayout>
+
 </LinearLayout>

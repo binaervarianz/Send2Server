@@ -5,12 +5,11 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.Date;
 
+import org.apache.http.HttpException;
 import org.apache.http.client.ClientProtocolException;
 
 import android.app.Activity;
-import android.app.AlertDialog;
 import android.content.Context;
-import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Bundle;
@@ -30,6 +29,7 @@ public class SendToServer extends Activity {
 		// read preferences
 		SharedPreferences settings = getSharedPreferences(ConfigWebDAV.PREFS_PRIVATE, Context.MODE_PRIVATE);
 		String serverURI = settings.getString(ConfigWebDAV.KEY_SERVER_URI, "https://");
+		boolean trustAllSSLCerts = settings.getBoolean(ConfigWebDAV.KEY_TRUSTALLSSL, false);
 		String user = settings.getString(ConfigWebDAV.KEY_USERNAME, "");
 		String pass = settings.getString(ConfigWebDAV.KEY_PASSWORD, "");
 
@@ -37,12 +37,14 @@ public class SendToServer extends Activity {
 			new URI(serverURI);
 		} catch (URISyntaxException e) {
 			Log.e(TAG, "URISyntaxException: "+e);
-			// TODO: user error message (maybe also do this check when testing/saving
+			// TODO: user error message (maybe also do this check when testing/saving) -- is inherently done!?
+			// TODO: alert dialog notifying users of broken url and redirecting them to the config app
+			// "Please provide a valid Server URI in the Config App first"
 			return;
 		}
 		
 		httpHandler = new WebDAVhandler(serverURI, user, pass);
-		httpHandler.setTrustAllSSLCerts(true);
+		httpHandler.setTrustAllSSLCerts(trustAllSSLCerts);
 
 		Intent intent = getIntent();
 		Bundle extras = intent.getExtras();
@@ -56,35 +58,24 @@ public class SendToServer extends Activity {
 			try {
 				httpHandler.putFile("URL-"+DateFormat.format("yyyyMMddhhmmss", new Date())+".txt", "", url);
 			} catch (ClientProtocolException e) {
-				Toast.makeText(this.getApplicationContext(), "ClientProtocolException: "+e, Toast.LENGTH_LONG).show();
+				Toast.makeText(this, this.getString(R.string.app_name) + ": ClientProtocolException: "+e, Toast.LENGTH_LONG).show();
 				Log.e(TAG, "ClientProtocolException: "+e);
+				return;
 			} catch (IOException e) {
-				Toast.makeText(this.getApplicationContext(), "IOException: "+e, Toast.LENGTH_LONG).show();
+				Toast.makeText(this, this.getString(R.string.app_name) + ": IOException: "+e, Toast.LENGTH_LONG).show();
 				Log.e(TAG, "IOException: "+e);
+				return;
+			} catch (IllegalArgumentException e) {
+				Toast.makeText(this, this.getString(R.string.app_name) + ": IllegalArgumentException: "+e, Toast.LENGTH_LONG).show();
+				Log.e(TAG, "IllegalArgumentException: "+e);
+				return;
+			} catch (HttpException e) {
+				Toast.makeText(this, this.getString(R.string.app_name) + ": HttpException: "+e, Toast.LENGTH_LONG).show();
+				Log.e(TAG, "HttpException: "+e);
+				return;
 			}
 			
-			Toast.makeText(this.getApplicationContext(), "Data send!", Toast.LENGTH_SHORT).show();
-
-			/*
-			AlertDialog.Builder alertDialogBuilder = new AlertDialog.Builder(this);
-			alertDialogBuilder.setTitle("Send URL...");
-			alertDialogBuilder.setMessage(url).setCancelable(false)
-					.setPositiveButton("Yes",
-							new DialogInterface.OnClickListener() {
-								public void onClick(DialogInterface dialog,
-										int id) {
-									dialog.cancel();
-								}
-							}).setNegativeButton("No",
-							new DialogInterface.OnClickListener() {
-								public void onClick(DialogInterface dialog,
-										int id) {
-									dialog.cancel();
-								}
-							});
-			AlertDialog alertDialog = alertDialogBuilder.create();
-			alertDialog.show();
-			*/
+			Toast.makeText(this, R.string.data_send, Toast.LENGTH_SHORT).show();
 		}
 	}
 }

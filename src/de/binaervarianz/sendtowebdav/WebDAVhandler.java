@@ -3,6 +3,7 @@ package de.binaervarianz.sendtowebdav;
 import java.io.File;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
+import java.text.SimpleDateFormat;
 import java.util.Date;
 
 import org.apache.http.HttpException;
@@ -116,7 +117,10 @@ public class WebDAVhandler {
 	 * Tests the connection by sending a GET request (no evaluation of results so far, just throwing exceptions if failing)
 	 */
 	public void testConnection() throws IllegalArgumentException, ClientProtocolException, IOException, HttpException {
-		putFile("ConnectionTest-"+DateFormat.format("yyyyMMddhhmmss", new Date())+".txt", "", "please delete!");
+		
+		SimpleDateFormat dateformater = new SimpleDateFormat("yyyyMMddHHmmss");
+		String timestamp = dateformater.format(new Date())
+		putFile("ConnectionTest-"+ timestamp +".txt", "", "please delete!");
 		
 		// TODO: try to silently delete the file again; ignore errors/exceptions along the way
 	}

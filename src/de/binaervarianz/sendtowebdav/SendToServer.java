@@ -3,6 +3,7 @@ package de.binaervarianz.sendtowebdav;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.text.SimpleDateFormat;
 import java.util.Date;
 
 import org.apache.http.HttpException;
@@ -13,7 +14,6 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Bundle;
-import android.text.format.DateFormat;
 import android.util.Log;
 import android.widget.Toast;
 
@@ -56,7 +56,8 @@ public class SendToServer extends Activity {
 			}
 
 			try {
-				httpHandler.putFile("URL-"+DateFormat.format("yyyyMMddhhmmss", new Date())+".txt", "", url);
+				SimpleDateFormat dateformater = new SimpleDateFormat("yyyyMMddHHmmss"); 
+				httpHandler.putFile("URL-"+dateformater.format(new Date())+".txt", "", url);
 			} catch (ClientProtocolException e) {
 				Toast.makeText(this, this.getString(R.string.app_name) + ": ClientProtocolException: "+e, Toast.LENGTH_LONG).show();
 				Log.e(TAG, "ClientProtocolException: "+e);

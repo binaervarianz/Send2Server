@@ -119,7 +119,7 @@ public class WebDAVhandler {
 	public void testConnection() throws IllegalArgumentException, ClientProtocolException, IOException, HttpException {
 		
 		SimpleDateFormat dateformater = new SimpleDateFormat("yyyyMMddHHmmss");
-		String timestamp = dateformater.format(new Date())
+		String timestamp = dateformater.format(new Date());
 		putFile("ConnectionTest-"+ timestamp +".txt", "", "please delete!");
 		
 		// TODO: try to silently delete the file again; ignore errors/exceptions along the way

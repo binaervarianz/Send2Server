@@ -11,6 +11,8 @@ import org.apache.http.StatusLine;
 import org.apache.http.auth.AuthScope;
 import org.apache.http.auth.UsernamePasswordCredentials;
 import org.apache.http.client.ClientProtocolException;
+import org.apache.http.client.methods.HttpDelete;
+import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPut;
 import org.apache.http.conn.ClientConnectionManager;
 import org.apache.http.conn.scheme.PlainSocketFactory;
@@ -113,11 +115,73 @@ public class WebDAVhandler {
 	}
 	
 	/**
+	 * Connects to the previously saved server address and tries to delete the specified file.
+	 * 
+	 * @param filename String with filename to be deleted on the server
+	 * @param path String with the server side path to the file
+	 * @return boolean evaluating the http response code
+	 * @throws ClientProtocolException
+	 * @throws IOException
+	 */
+	public void delFile(String filename, String path)
+			throws IllegalArgumentException, ClientProtocolException, IOException, HttpException {		
+		
+		HttpDelete del = new HttpDelete(serverURI + "/" + path + filename);	
+		
+		
+		DefaultHttpClient http = this.prepareHttpClient(user, pass);
+		
+		HttpResponse response = http.execute(del);
+		StatusLine responseStatus = response.getStatusLine();		
+
+		// debug
+		Log.d(TAG, "StatusLine: "
+				+ responseStatus.toString() + ", "
+				+ " URL: " + serverURI);
+		
+		// evaluate the HTTP response status code
+		if (responseStatus.getStatusCode() >= 400)
+			throw new HttpException(responseStatus.toString());
+	}
+	
+	/**
+	 * Connects to the previously saved server address and tries to download the specified file.
+	 * 
+	 * @param filename String with filename to be downloaded from the server
+	 * @param path String with the server side path to the file
+	 * @return boolean evaluating the http response code
+	 * @throws ClientProtocolException
+	 * @throws IOException
+	 */
+	public void getFile(String filename, String path)
+			throws IllegalArgumentException, ClientProtocolException, IOException, HttpException {		
+		
+		HttpGet get = new HttpGet(serverURI + "/" + path + filename);	
+				
+		DefaultHttpClient http = this.prepareHttpClient(user, pass);
+		
+		HttpResponse response = http.execute(get);
+		StatusLine responseStatus = response.getStatusLine();		
+		Log.d(TAG, "Response:" + response.getEntity().toString());
+
+		// debug
+		Log.d(TAG, "StatusLine: "
+				+ responseStatus.toString() + ", "
+				+ " URL: " + serverURI);
+		
+		// evaluate the HTTP response status code
+		if (responseStatus.getStatusCode() >= 400)
+			throw new HttpException(responseStatus.toString());
+	}
+	
+	/**
 	 * Tests the connection by sending a GET request (no evaluation of results so far, just throwing exceptions if failing)
 	 */
 	public void testConnection() throws IllegalArgumentException, ClientProtocolException, IOException, HttpException {
-		putFile("ConnectionTest-"+DateFormat.format("yyyyMMddhhmmss", new Date())+".txt", "", "please delete!");
-		
+		String name = "ConnectionTest-"+DateFormat.format("yyyyMMddhhmmss", new Date())+".txt";
+		putFile(name, "", "please delete!");
+		getFile(name, "");
+		delFile(name, "");
 		// TODO: try to silently delete the file again; ignore errors/exceptions along the way
 	}
 	

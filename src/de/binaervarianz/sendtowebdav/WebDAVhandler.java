@@ -2,6 +2,7 @@ package de.binaervarianz.sendtowebdav;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
@@ -147,7 +148,7 @@ public class WebDAVhandler {
 	 * @throws ClientProtocolException
 	 * @throws IOException
 	 */
-	public void getFile(String filename, String path)
+	public String getFile(String filename, String path)
 			throws IllegalArgumentException, ClientProtocolException, IOException, HttpException {		
 		
 		HttpGet get = new HttpGet(serverURI + "/" + path + filename);	
@@ -156,29 +157,56 @@ public class WebDAVhandler {
 		
 		HttpResponse response = http.execute(get);
 		StatusLine responseStatus = response.getStatusLine();		
-		Log.d(TAG, "Response:" + response.getEntity().toString());
-
-		// debug
-		Log.d(TAG, "StatusLine: "
+		
+		if (responseStatus.getStatusCode() == 200) {
+			InputStream is = response.getEntity().getContent();
+			StringBuffer sb = new StringBuffer();
+			int chr;
+			while ((chr = is.read()) != -1)
+				sb.append((char) chr);
+		
+			// debug
+			Log.d(TAG, "Content:" + sb.toString());
+		
+			Log.d(TAG, "StatusLine: "
 				+ responseStatus.toString() + ", "
 				+ " URL: " + serverURI);
-		
-		// evaluate the HTTP response status code
-		if (responseStatus.getStatusCode() >= 400)
+			return(sb.toString());
+		} else {
+			// evaluate the HTTP response status code
+			if (responseStatus.getStatusCode() >= 400)
 			throw new HttpException(responseStatus.toString());
+		
+			return("");
+		}
+		
 	}
 	
 	/**
 	 * Tests the connection by sending a GET request (no evaluation of results so far, just throwing exceptions if failing)
 	 */
-	public void testConnection() throws IllegalArgumentException, ClientProtocolException, IOException, HttpException {
+	public boolean testConnection() throws IllegalArgumentException, ClientProtocolException, IOException, HttpException {
 		
 		SimpleDateFormat dateformater = new SimpleDateFormat("yyyyMMddHHmmss");
 		String timestamp = dateformater.format(new Date());
-		putFile("ConnectionTest-"+ timestamp +".txt", "", "please delete!");
-		// TODO: GET file and validate content with stored 
-		getFile("ConnectionTest-"+ timestamp +".txt", "");
-		deleteFile("ConnectionTest-"+ timestamp +".txt", "");		
+		Log.d(TAG, "PUT");
+		putFile("ConnectionTest-"+ timestamp +".txt", "", "please delete! " + timestamp);
+		
+		Log.d(TAG, "GET");
+		String ret = getFile("ConnectionTest-"+ timestamp +".txt", "");
+		
+		boolean retValue;
+		
+		if (ret.equals(("please delete! " + timestamp))) {
+			retValue = true;
+			Log.d(TAG, "Success");
+		} else {
+			retValue = false;
+		}
+		Log.d(TAG, "DEL");
+		deleteFile("ConnectionTest-"+ timestamp +".txt", "");	
+		
+		return(retValue);
 
 	}
 	

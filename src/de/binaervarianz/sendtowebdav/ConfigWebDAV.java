@@ -84,9 +84,11 @@ public class ConfigWebDAV extends Activity {
 	private boolean checkConnection(String serverURI, String user, String pass, boolean trustSSLCerts) {
     	WebDAVhandler httpHandler = new WebDAVhandler(serverURI, user, pass);
     	httpHandler.setTrustAllSSLCerts(trustSSLCerts);
+    	boolean testResult;
     	
     	try {
-			httpHandler.testConnection();
+			testResult = httpHandler.testConnection();
+			
 		} catch (ClientProtocolException e) {
 			Toast.makeText(ConfigWebDAV.this, "ClientProtocolException: "+e, Toast.LENGTH_LONG).show();
 			Toast.makeText(ConfigWebDAV.this, R.string.settings_not_saved, Toast.LENGTH_LONG).show();
@@ -110,7 +112,10 @@ public class ConfigWebDAV extends Activity {
 			Log.e(TAG, "HttpException: "+e);
 			return false;
 		}
-		return true;
+		
+		//TODO display to the user if failed or succeded
+		//FIXME all the toasts probably don't work while the progress dialog is shown!!
+		return(testResult);
     }
 
     // Define the Handler that receives messages from the thread and update the progress

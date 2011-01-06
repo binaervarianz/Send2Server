@@ -12,6 +12,7 @@ import org.apache.http.StatusLine;
 import org.apache.http.auth.AuthScope;
 import org.apache.http.auth.UsernamePasswordCredentials;
 import org.apache.http.client.ClientProtocolException;
+import org.apache.http.client.methods.HttpDelete;
 import org.apache.http.client.methods.HttpPut;
 import org.apache.http.conn.ClientConnectionManager;
 import org.apache.http.conn.scheme.PlainSocketFactory;
@@ -26,7 +27,6 @@ import org.apache.http.impl.conn.tsccm.ThreadSafeClientConnManager;
 import org.apache.http.params.BasicHttpParams;
 import org.apache.http.params.HttpParams;
 
-import android.text.format.DateFormat;
 import android.util.Log;
 
 public class WebDAVhandler {
@@ -114,6 +114,29 @@ public class WebDAVhandler {
 	}
 	
 	/**
+	 * Removes file on remote server given by remotefile using HTTP DELETE method.
+	 * 
+	 * @param remotefile
+	 * @return void
+	 * @throws ClientProtocolException
+	 * @throws IOException
+	 */
+	private void deleteFile(String filename, String path) throws ClientProtocolException, IOException {
+		
+		HttpDelete delete = new HttpDelete(serverURI + "/" + path + filename);
+		//delete.addHeader("Content-type", "text/plain");
+		
+		DefaultHttpClient http = this.prepareHttpClient(user, pass);
+		Log.d(TAG, "http client created");
+		HttpResponse response = http.execute(delete);
+		StatusLine responseStatus = response.getStatusLine();
+		
+		// debug
+		Log.d(TAG, "StatusLine: " + responseStatus.toString() + ", "
+				+ " URL: " + filename);
+	}
+	
+	/**
 	 * Tests the connection by sending a GET request (no evaluation of results so far, just throwing exceptions if failing)
 	 */
 	public void testConnection() throws IllegalArgumentException, ClientProtocolException, IOException, HttpException {
@@ -121,8 +144,9 @@ public class WebDAVhandler {
 		SimpleDateFormat dateformater = new SimpleDateFormat("yyyyMMddHHmmss");
 		String timestamp = dateformater.format(new Date());
 		putFile("ConnectionTest-"+ timestamp +".txt", "", "please delete!");
-		
-		// TODO: try to silently delete the file again; ignore errors/exceptions along the way
+		// TODO: GET file and validate content with stored 
+		deleteFile("ConnectionTest-"+ timestamp +".txt", "");		
+
 	}
 	
 	/**

@@ -3,6 +3,7 @@ package de.binaervarianz.sendtowebdav;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.text.SimpleDateFormat;
 import java.util.Date;
 
 import org.apache.http.HttpException;
@@ -16,7 +17,6 @@ import android.database.Cursor;
 import android.net.Uri;
 import android.os.Bundle;
 import android.provider.MediaStore;
-import android.text.format.DateFormat;
 import android.util.Log;
 import android.widget.Toast;
 
@@ -70,17 +70,21 @@ public class SendToServer extends Activity {
 			/// end of debug, resume normal operation			
 			
 			String url = "";
+			SimpleDateFormat dateformater = new SimpleDateFormat("yyyyMMddHHmmss"); 
 			try {				
 				if (extras.containsKey(Intent.EXTRA_TEXT)) {	// simple text like URLs
 					url += extras.getString(Intent.EXTRA_TEXT);
-					httpHandler.putFile("URL-"+DateFormat.format("yyyyMMddhhmmss", new Date())+".txt", "", url);
+					httpHandler.putFile("URL-"+dateformater.format(new Date())+".txt", "", url);
+					
 				} else if (extras.containsKey(Intent.EXTRA_STREAM)) {	// binary files
 					Uri contentUri = (Uri) extras.get(Intent.EXTRA_STREAM);
+					
 					//debug
 					Log.d(TAG, contentUri.toString());
 					
 					String filePath = "";
 					// there are real file system paths and logical content URIs
+					// I've so far only tested the first kind [chaos]
 					if (contentUri.toString().startsWith("content:")) {
 						filePath = this.getRealPathFromURI(contentUri);
 					} else {
@@ -88,10 +92,15 @@ public class SendToServer extends Activity {
 					}
 					// create a basename and suffix out of the type identifier
 					String basename = type.toUpperCase().charAt(0) + type.substring(1, type.indexOf('/'));
-					String suffix = "." + type.substring(type.indexOf('/'));
-					String name = basename + DateFormat.format("yyyyMMddhhmmss", new Date())+ suffix;
+					String suffix = "." + type.substring(type.indexOf('/')+1);
+					String name = basename + "-" + dateformater.format(new Date())+ suffix;
+					
+					//debug
+					Log.d(TAG, name);
+					
 					//TODO actually we should keep the original name for binary files, 
 					//     but we would have to check for existence on the server first
+					//     as WebDAV defaults to 'replace' as far as I have read
 					httpHandler.putBinFile( name, "", filePath, type);
 			}
 			} catch (ClientProtocolException e) {

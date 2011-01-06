@@ -101,8 +101,10 @@ public class SendToServer extends Activity {
 					//TODO actually we should keep the original name for binary files, 
 					//     but we would have to check for existence on the server first
 					//     as WebDAV defaults to 'replace' as far as I have read
+					// I would actually vote for putting them with their original name
+					// in timestamped subfolders (instead of timestamped filenames) [matsch]
 					httpHandler.putBinFile( name, "", filePath, type);
-			}
+				}
 			} catch (ClientProtocolException e) {
 				Toast.makeText(this, this.getString(R.string.app_name) + ": ClientProtocolException: "+e, Toast.LENGTH_LONG).show();
 				Log.e(TAG, "ClientProtocolException: "+e);

@@ -12,7 +12,10 @@ import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.database.Cursor;
+import android.net.Uri;
 import android.os.Bundle;
+import android.provider.MediaStore;
 import android.text.format.DateFormat;
 import android.util.Log;
 import android.widget.Toast;
@@ -48,15 +51,49 @@ public class SendToServer extends Activity {
 
 		Intent intent = getIntent();
 		Bundle extras = intent.getExtras();
-
+		
 		if (intent.getAction().equals(Intent.ACTION_SEND) && extras != null) {
-			String url = "";
-			if (extras.containsKey(Intent.EXTRA_TEXT)) {
-				url += extras.getString(Intent.EXTRA_TEXT);
+		//TODO figure out what's to be send
+		
+			//this is for debugging and getting information on new media types
+			String type = intent.resolveType(this);
+			//URLS give text/plain, images image/jpeg ....
+			Log.d(TAG, type);
+			for (String s : extras.keySet()) {
+				Log.d(TAG, s);
+				//Urls give EXTRA_TEXT, images EXTRA_STREAM
 			}
-
-			try {
-				httpHandler.putFile("URL-"+DateFormat.format("yyyyMMddhhmmss", new Date())+".txt", "", url);
+			if (intent.getDataString() != null) {
+				Log.d(TAG, intent.getDataString());	
+				//no data so far attached to the intents
+			}			
+			/// end of debug, resume normal operation			
+			
+			String url = "";
+			try {				
+				if (extras.containsKey(Intent.EXTRA_TEXT)) {	// simple text like URLs
+					url += extras.getString(Intent.EXTRA_TEXT);
+					httpHandler.putFile("URL-"+DateFormat.format("yyyyMMddhhmmss", new Date())+".txt", "", url);
+				} else if (extras.containsKey(Intent.EXTRA_STREAM)) {	// binary files
+					Uri contentUri = (Uri) extras.get(Intent.EXTRA_STREAM);
+					//debug
+					Log.d(TAG, contentUri.toString());
+					
+					String filePath = "";
+					// there are real file system paths and logical content URIs
+					if (contentUri.toString().startsWith("content:")) {
+						filePath = this.getRealPathFromURI(contentUri);
+					} else {
+						filePath = contentUri.getEncodedPath();
+					}
+					// create a basename and suffix out of the type identifier
+					String basename = type.toUpperCase().charAt(0) + type.substring(1, type.indexOf('/'));
+					String suffix = "." + type.substring(type.indexOf('/'));
+					String name = basename + DateFormat.format("yyyyMMddhhmmss", new Date())+ suffix;
+					//TODO actually we should keep the original name for binary files, 
+					//     but we would have to check for existence on the server first
+					httpHandler.putBinFile( name, "", filePath, type);
+			}
 			} catch (ClientProtocolException e) {
 				Toast.makeText(this, this.getString(R.string.app_name) + ": ClientProtocolException: "+e, Toast.LENGTH_LONG).show();
 				Log.e(TAG, "ClientProtocolException: "+e);
@@ -77,5 +114,20 @@ public class SendToServer extends Activity {
 			
 			Toast.makeText(this, R.string.data_send, Toast.LENGTH_SHORT).show();
 		}
+		
 	}
+	/**
+	 * convert a <content:> URI (like from the gallery) to an absolute path
+	 * 
+	 * This is stolen from http://stackoverflow.com/questions/3401579/android-get-filename-and-path-from-uri-from-mediastore
+	 * @param contentUri
+	 * @return String with absolute path to file
+	 */
+	private String getRealPathFromURI(Uri contentUri) {
+        String[] proj = { MediaStore.Images.Media.DATA };
+        Cursor cursor = managedQuery(contentUri, proj, null, null, null);
+        int column_index = cursor.getColumnIndexOrThrow(MediaStore.Images.Media.DATA);
+        cursor.moveToFirst();
+        return cursor.getString(column_index);
+    }
 }

@@ -15,6 +15,7 @@
 				<action android:name="android.intent.action.SEND"></action>
 				<category android:name="android.intent.category.DEFAULT"></category>
 				<data android:mimeType="text/plain"></data>
+				<data android:mimeType="image/jpeg"></data>
 			</intent-filter>
 		</activity>
 	</application>

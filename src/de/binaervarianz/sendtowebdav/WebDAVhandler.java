@@ -1,5 +1,6 @@
 package de.binaervarianz.sendtowebdav;
 
+import java.io.File;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.util.Date;
@@ -16,6 +17,7 @@ import org.apache.http.conn.scheme.PlainSocketFactory;
 import org.apache.http.conn.scheme.Scheme;
 import org.apache.http.conn.scheme.SchemeRegistry;
 import org.apache.http.conn.ssl.SSLSocketFactory;
+import org.apache.http.entity.FileEntity;
 import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.BasicCredentialsProvider;
 import org.apache.http.impl.client.DefaultHttpClient;
@@ -63,6 +65,40 @@ public class WebDAVhandler {
 		put.addHeader("Content-type", "text/plain");
 
 		DefaultHttpClient http = this.prepareHttpClient(user, pass);
+		HttpResponse response = http.execute(put);
+		StatusLine responseStatus = response.getStatusLine();		
+
+		// debug
+		Log.d(TAG, "StatusLine: "
+				+ responseStatus.toString() + ", "
+				+ " URL: " + serverURI);
+		
+		// evaluate the HTTP response status code
+		if (responseStatus.getStatusCode() >= 400)
+			throw new HttpException(responseStatus.toString());
+	}
+	
+	/**
+	 * Connects to the previously saved server address and puts a binary file with the given name and content there.
+	 * 
+	 * @param filename String with filename to be created on the server
+	 * @param path String with the server side path to put the file
+	 * @param filePath String with the client side (Android) path to the source file
+	 * @param type : String with MIME type of the data
+	 * @return boolean evaluating the http response code
+	 * @throws ClientProtocolException
+	 * @throws IOException
+	 */
+	public void putBinFile(String filename, String path, String filePath, String type)
+			throws IllegalArgumentException, ClientProtocolException, IOException, HttpException {		
+		
+		HttpPut put = new HttpPut(serverURI + "/" + path + filename);	
+		put.setEntity(new FileEntity(new File(filePath), type));
+				
+		put.addHeader("Content-type", type);
+
+		DefaultHttpClient http = this.prepareHttpClient(user, pass);
+		Log.d(TAG, "http client created");
 		HttpResponse response = http.execute(put);
 		StatusLine responseStatus = response.getStatusLine();		
 

@@ -92,8 +92,8 @@ public class SendToServer extends Activity {
 					}
 					// create a basename and suffix out of the type identifier
 					String basename = type.toUpperCase().charAt(0) + type.substring(1, type.indexOf('/'));
-					String suffix = "." + type.substring(type.indexOf('/')+1);
-					String name = basename + "-" + dateformater.format(new Date())+ suffix;
+					//String suffix = "." + type.substring(type.indexOf('/')+1);
+					String name = basename + "-" + dateformater.format(new Date()); //+ suffix;
 					
 					//debug
 					Log.d(TAG, name);

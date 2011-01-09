@@ -95,13 +95,18 @@ public class WebDAVhandler {
 	public void putBinFile(String filename, String path, String filePath, String type)
 			throws IllegalArgumentException, ClientProtocolException, IOException, HttpException {		
 		
-		HttpPut put = new HttpPut(serverURI + "/" + path + filename);	
+		// create collection on server
+		HttpMkcol mkcol = new HttpMkcol(serverURI + "/" + path + filename + "/");
+		String file = filePath.substring(filePath.lastIndexOf('/'));
+		
+		HttpPut put = new HttpPut(serverURI + "/" + path + filename + "/" + file);	
 		put.setEntity(new FileEntity(new File(filePath), type));
 				
 		put.addHeader("Content-type", type);
 
 		DefaultHttpClient http = this.prepareHttpClient(user, pass);
 		Log.d(TAG, "http client created");
+		http.execute(mkcol);
 		HttpResponse response = http.execute(put);
 		StatusLine responseStatus = response.getStatusLine();		
 

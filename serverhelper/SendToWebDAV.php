@@ -25,6 +25,8 @@ if ($handle = opendir('.'.$filepath)) {
 		closedir($handle);
 }
 
+function print_enclosure(&$value, $key) {echo ' '.$key.'="'.$value.'"';}
+
 arsort($files);
 foreach (array_keys($files) as $file) {
 	echo "\n".'<item>'."\n";
@@ -32,6 +34,7 @@ foreach (array_keys($files) as $file) {
 	$link = '';
 	$title = '';
 	$date = array();
+	$enclosure = array();
 
 	// 
 	if (is_dir(".$filepath".$file)) {
@@ -40,6 +43,13 @@ foreach (array_keys($files) as $file) {
 				if (!preg_match('/^(\.|\.\.)$/', $binfile)) {
 					$title = $binfile;
 					$link = $server.$filepath.$file."/".$binfile."\n";
+					// filesize returns nothing :-(
+					//$enclosure['length'] = filesize('.'.$filepath.$file.'/'.$binfile);
+					$enclosure['url']	= trim($link);
+					// finfo needs php 5.3
+				/*	$finfo = finfo_open(FILEINFO_MIME_TYPE);
+					$enclosure['type'] = finfo_file($finfo, ".$filepath".$file."/".$binfile);
+					finfo_close($finfo);*/
 					break;
 				}
 			}
@@ -60,10 +70,15 @@ foreach (array_keys($files) as $file) {
   echo '<link>'.htmlspecialchars(trim($link)).'</link>'."\n";
 	echo '<gid>'.preg_replace('/(.+-\d{14}).*/', '$1', $file).'</gid>'."\n";
 	echo '<pubDate>'.date('D, d M Y H:i:s O', mktime($date[4], $date[5], $date[6], $date[2], $date[3], $date[1])).'</pubDate>'."\n";
+	if (isset($enclosure['url'])) {
+		echo '<enclosure';
+		array_walk($enclosure, 'print_enclosure');
+		echo ' />'."\n";
+	}
 	echo '</item>'."\n";
 }
 ?>
 
 </channel>
-<?php //print_r($folders); ?>
+<?php //phpinfo(); ?>
 </rss>

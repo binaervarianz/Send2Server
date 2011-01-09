@@ -16,6 +16,8 @@
 				<category android:name="android.intent.category.DEFAULT"></category>
 				<data android:mimeType="text/plain"></data>
 				<data android:mimeType="image/jpeg"></data>
+				<data android:mimeType="image/png"></data>
+				<data android:mimeType="image/gif"></data>
 			</intent-filter>
 		</activity>
 	</application>

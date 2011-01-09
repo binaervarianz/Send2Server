@@ -6,6 +6,7 @@ import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.net.URLEncoder;
 
 import org.apache.http.HttpException;
 import org.apache.http.HttpResponse;
@@ -96,17 +97,19 @@ public class WebDAVhandler {
 			throws IllegalArgumentException, ClientProtocolException, IOException, HttpException {		
 		
 		// create collection on server
-		HttpMkcol mkcol = new HttpMkcol(serverURI + "/" + path + filename + "/");
+		HttpMkcol mkcol = new HttpMkcol(serverURI  + path + filename + "/");
+		Log.d(TAG, "Folder to be created: " + filename + "/");
 		
-		String file = filePath.substring(filePath.lastIndexOf('/'));
+		String file = filePath.substring(filePath.lastIndexOf('/')+1);
+		file = URLEncoder.encode(file, "UTF-8");
+		Log.d(TAG, "File to be created: " + file);
 		
-		HttpPut put = new HttpPut(serverURI + "/" + path + filename + "/" + file);	
+		HttpPut put = new HttpPut(serverURI  + path + filename + "/" + file);	
 		put.setEntity(new FileEntity(new File(filePath), type));
 				
 		put.addHeader("Content-type", type);
 
 		DefaultHttpClient http = this.prepareHttpClient(user, pass);
-		Log.d(TAG, "http client created");
 		
 		http.execute(mkcol);		// currently no error handling or response checking
 		HttpResponse response = http.execute(put);

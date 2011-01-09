@@ -53,7 +53,7 @@ public class SendToServer extends Activity {
 		Bundle extras = intent.getExtras();
 		
 		if (intent.getAction().equals(Intent.ACTION_SEND) && extras != null) {
-		//TODO figure out what's to be send
+		//figure out what's to be send
 		
 			//this is for debugging and getting information on new media types
 			String type = intent.resolveType(this);

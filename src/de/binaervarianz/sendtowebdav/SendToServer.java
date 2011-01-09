@@ -90,10 +90,9 @@ public class SendToServer extends Activity {
 					} else {
 						filePath = contentUri.getEncodedPath();
 					}
-					// create a basename and suffix out of the type identifier
+					// create a basename out of the type identifier
 					String basename = type.toUpperCase().charAt(0) + type.substring(1, type.indexOf('/'));
-					//String suffix = "." + type.substring(type.indexOf('/')+1);
-					String name = basename + "-" + dateformater.format(new Date()); //+ suffix;
+					String name = basename + "-" + dateformater.format(new Date());
 					
 					//debug
 					Log.d(TAG, name);

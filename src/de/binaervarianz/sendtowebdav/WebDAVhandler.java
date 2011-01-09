@@ -97,6 +97,7 @@ public class WebDAVhandler {
 		
 		// create collection on server
 		HttpMkcol mkcol = new HttpMkcol(serverURI + "/" + path + filename + "/");
+		
 		String file = filePath.substring(filePath.lastIndexOf('/'));
 		
 		HttpPut put = new HttpPut(serverURI + "/" + path + filename + "/" + file);	
@@ -106,7 +107,8 @@ public class WebDAVhandler {
 
 		DefaultHttpClient http = this.prepareHttpClient(user, pass);
 		Log.d(TAG, "http client created");
-		http.execute(mkcol);
+		
+		http.execute(mkcol);		// currently no error handling or response checking
 		HttpResponse response = http.execute(put);
 		StatusLine responseStatus = response.getStatusLine();		
 

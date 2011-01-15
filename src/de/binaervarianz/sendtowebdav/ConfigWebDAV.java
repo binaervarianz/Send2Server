@@ -1,10 +1,5 @@
 package de.binaervarianz.sendtowebdav;
 
-import java.io.IOException;
-
-import org.apache.http.HttpException;
-import org.apache.http.client.ClientProtocolException;
-
 import android.app.Activity;
 import android.app.ProgressDialog;
 import android.content.Context;
@@ -28,6 +23,11 @@ public class ConfigWebDAV extends Activity {
 	public static final String KEY_PASSWORD = "PASSWORD";
 	public static final String KEY_TRUSTALLSSL = "TRUSTALLSSL";
 	
+	private static int sender = 0;
+	private static final int SENDER_TEST = 1;
+	private static final int SENDER_SAVE = 2;
+	private static final int SENDER_DEPLOY = 3;
+	
 	private ProgressDialog dialog;
 	
     /** Called when the activity is first created. */
@@ -44,29 +44,31 @@ public class ConfigWebDAV extends Activity {
 	    ((EditText)findViewById(R.id.pass_input)).setText(settings.getString(KEY_PASSWORD, ""));
 	    
 	    // save button
-        final Button saveButton = (Button) findViewById(R.id.saveButton);
+        final Button saveButton = (Button)findViewById(R.id.saveButton);
         saveButton.setOnClickListener(new View.OnClickListener() {
             public void onClick(View v) {
             	dialog = ProgressDialog.show(ConfigWebDAV.this, "", ConfigWebDAV.this.getString(R.string.testing_saving_progress), true);
+            	sender = SENDER_SAVE;
             	new SaveThread(handler).start();
             }
         });
         
         // test connection button
-        final Button testButton = (Button) findViewById(R.id.testButton);
+        final Button testButton = (Button)findViewById(R.id.testButton);
         testButton.setOnClickListener(new View.OnClickListener() {
             public void onClick(View v) {
             	dialog = ProgressDialog.show(ConfigWebDAV.this, "", ConfigWebDAV.this.getString(R.string.testing_progress), true);
+            	sender = SENDER_TEST;
             	new TestThread(handler).start();
             }
         });
         
         // deploy server button
-        final Button deployServerButton = (Button) findViewById(R.id.deployServerButton);
+        final Button deployServerButton = (Button)findViewById(R.id.deployServerButton);
         deployServerButton.setOnClickListener(new View.OnClickListener() {
             public void onClick(View v) {
             	// TODO: put an attached .zip file with server components and a README on server
-
+            	//new DeployThread(handler).start();
             	Toast.makeText(ConfigWebDAV.this, "TODO", Toast.LENGTH_SHORT).show();
             }
         });
@@ -81,48 +83,54 @@ public class ConfigWebDAV extends Activity {
      * @param trustSSLCerts
      * @return boolean, true for test passed
      */
-	private boolean checkConnection(String serverURI, String user, String pass, boolean trustSSLCerts) {
+	private Exception checkConnection(String serverURI, String user, String pass, boolean trustSSLCerts) {
     	WebDAVhandler httpHandler = new WebDAVhandler(serverURI, user, pass);
     	httpHandler.setTrustAllSSLCerts(trustSSLCerts);
     	boolean testResult;
     	
     	try {
 			testResult = httpHandler.testConnection();
-			
-		} catch (ClientProtocolException e) {
-			Toast.makeText(ConfigWebDAV.this, "ClientProtocolException: "+e, Toast.LENGTH_LONG).show();
-			Toast.makeText(ConfigWebDAV.this, R.string.settings_not_saved, Toast.LENGTH_LONG).show();
-			Log.e(TAG, "ClientProtocolException: "+e);
-			return false;
-		} catch (IOException e) {
-			Toast.makeText(ConfigWebDAV.this, "IOException: "+e, Toast.LENGTH_LONG).show();
-			Toast.makeText(ConfigWebDAV.this, R.string.settings_not_saved, Toast.LENGTH_LONG).show();
-			Log.e(TAG, "IOException: "+e);
-			return false;
-		} catch (IllegalArgumentException e) {
-			// invalid URL supplied (e.g. only "https://") 
-			Toast.makeText(ConfigWebDAV.this, "IllegalArgumentException: "+e, Toast.LENGTH_LONG).show();
-			Toast.makeText(ConfigWebDAV.this, R.string.settings_not_saved, Toast.LENGTH_LONG).show();
-			Log.e(TAG, "IllegalArgumentException: "+e);
-			return false;
-		} catch (HttpException e) {
-			// HTTP response status codes >= 400
-			Toast.makeText(ConfigWebDAV.this, "HttpException: "+e, Toast.LENGTH_LONG).show();
-			Toast.makeText(ConfigWebDAV.this, R.string.settings_not_saved, Toast.LENGTH_LONG).show();
-			Log.e(TAG, "HttpException: "+e);
-			return false;
+    	} catch (Exception e) {
+    		// can be:
+    		// - ClientProtocolException:
+    		// - IOException
+    		// - IllegalArgumentException: invalid URL supplied (e.g. only "https://")
+    		// - HttpException: HTTP response status codes >= 400
+    		Log.e(TAG, e.getClass().getSimpleName() + ": " + e.getMessage());
+			return e;
 		}
-		
-		//TODO display to the user if failed or succeded
-		//FIXME all the toasts probably don't work while the progress dialog is shown!!
-		return(testResult);
+
+    	if (!testResult)
+			return new Exception("Connection Test Failed!");
+		else
+			return null;
     }
 
-    // Define the Handler that receives messages from the thread and update the progress
+    // Define the Handler that receives messages from the thread
     final Handler handler = new Handler() {
         public void handleMessage(Message msg) {
         	dialog.dismiss();
-        	Toast.makeText(ConfigWebDAV.this, R.string.settings_saved, Toast.LENGTH_SHORT).show();
+
+        	if (msg.what == 0) {
+        		switch (sender) {
+        			case SENDER_TEST:
+        				Toast.makeText(ConfigWebDAV.this, R.string.connection_success, Toast.LENGTH_SHORT).show();
+        				break;
+        			case SENDER_SAVE:
+        				Toast.makeText(ConfigWebDAV.this, R.string.settings_saved, Toast.LENGTH_SHORT).show();
+        				break;
+        		}
+        	} else {
+        		Toast.makeText(ConfigWebDAV.this, (String)msg.obj, Toast.LENGTH_LONG).show();
+        		switch (sender) {
+    				case SENDER_TEST:
+    					Toast.makeText(ConfigWebDAV.this, R.string.connection_failed, Toast.LENGTH_LONG).show();
+    					break;
+    				case SENDER_SAVE:
+    					Toast.makeText(ConfigWebDAV.this, R.string.settings_not_saved, Toast.LENGTH_LONG).show();
+    					break;
+        		}
+        	}
         }
     };
 
@@ -144,21 +152,27 @@ public class ConfigWebDAV extends Activity {
         	if  (!serverURI.endsWith("/"))
         		serverURI += "/";
         	
-        	if (!checkConnection(serverURI, user, pass, trustAllSSLCerts))
-        		return;
+        	Exception e = checkConnection(serverURI, user, pass, trustAllSSLCerts); 
         	
-        	// save the preferences
-    	    SharedPreferences settings = getSharedPreferences(PREFS_PRIVATE, Context.MODE_PRIVATE);
-    	    SharedPreferences.Editor editor = settings.edit();
-    	    editor.putString(KEY_SERVER_URI, serverURI);
-    	    editor.putBoolean(KEY_TRUSTALLSSL, trustAllSSLCerts);
-    	    editor.putString(KEY_USERNAME, user);
-    	    editor.putString(KEY_PASSWORD, pass); // TODO: encrypt pwd
-
-    	    // Commit the edits!
-    	    editor.commit();
-    	    
-        	mHandler.sendEmptyMessage(0);
+        	Message msg = mHandler.obtainMessage();
+        	if (e == null) {
+	        	// save the preferences
+	    	    SharedPreferences settings = getSharedPreferences(PREFS_PRIVATE, Context.MODE_PRIVATE);
+	    	    SharedPreferences.Editor editor = settings.edit();
+	    	    editor.putString(KEY_SERVER_URI, serverURI);
+	    	    editor.putBoolean(KEY_TRUSTALLSSL, trustAllSSLCerts);
+	    	    editor.putString(KEY_USERNAME, user);
+	    	    editor.putString(KEY_PASSWORD, pass); // TODO: encrypt pwd (or not?)
+	
+	    	    // Commit the edits!
+	    	    editor.commit();
+	    	    
+	    	    msg.what = 0;
+        	} else {
+        		msg.obj = e.getClass().getSimpleName() + ": " + e.getLocalizedMessage();
+                msg.what = 1;
+        	}
+            mHandler.sendMessage(msg);
         }
     }
     
@@ -180,12 +194,16 @@ public class ConfigWebDAV extends Activity {
         	if  (!serverURI.endsWith("/"))
         		serverURI = serverURI + "/";
         	
-        	if (!checkConnection(serverURI, user, pass, trustAllSSLCerts)) {
-        		dialog.dismiss();
-        		return;
+        	Exception e = checkConnection(serverURI, user, pass, trustAllSSLCerts); 
+        	
+        	Message msg = mHandler.obtainMessage();
+        	if (e == null) {
+	    	    msg.what = 0;
+        	} else {
+        		msg.obj = e.getClass().getSimpleName() + ": " + e.getLocalizedMessage();
+                msg.what = 1;
         	}
-    	    
-        	mHandler.sendEmptyMessage(0);
+            mHandler.sendMessage(msg);
         }
     }
 }

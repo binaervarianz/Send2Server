@@ -111,9 +111,21 @@ public class WebDAVhandler {
 
 		DefaultHttpClient http = this.prepareHttpClient(user, pass);
 		
-		http.execute(mkcol);		// currently no error handling or response checking
-		HttpResponse response = http.execute(put);
-		StatusLine responseStatus = response.getStatusLine();		
+		Log.d(TAG, "HTTP MKCOL Request");
+		HttpResponse response = http.execute(mkcol);		// TODO: currently no error handling or response checking
+		StatusLine responseStatus = response.getStatusLine();	
+		// debug
+		Log.d(TAG, "StatusLine: "
+				+ responseStatus.toString() + ", "
+				+ " URL: " + serverURI);
+		
+		// evaluate the HTTP response status code
+		if (responseStatus.getStatusCode() >= 400)
+			throw new HttpException(responseStatus.toString());
+		
+		Log.d(TAG, "HTTP PUT Request");
+		response = http.execute(put);
+		responseStatus = response.getStatusLine();		
 
 		// debug
 		Log.d(TAG, "StatusLine: "
@@ -136,10 +148,8 @@ public class WebDAVhandler {
 	private void deleteFile(String filename, String path) throws ClientProtocolException, IOException {
 		
 		HttpDelete delete = new HttpDelete(serverURI + "/" + path + filename);
-		//delete.addHeader("Content-type", "text/plain");
 		
 		DefaultHttpClient http = this.prepareHttpClient(user, pass);
-		Log.d(TAG, "http client created");
 		HttpResponse response = http.execute(delete);
 		StatusLine responseStatus = response.getStatusLine();
 		
@@ -176,7 +186,7 @@ public class WebDAVhandler {
 				sb.append((char) chr);
 		
 			// debug
-			Log.d(TAG, "Content:" + sb.toString());
+			Log.d(TAG, "Content: " + sb.toString());
 		
 			Log.d(TAG, "StatusLine: "
 				+ responseStatus.toString() + ", "
@@ -185,7 +195,7 @@ public class WebDAVhandler {
 		} else {
 			// evaluate the HTTP response status code
 			if (responseStatus.getStatusCode() >= 400)
-			throw new HttpException(responseStatus.toString());
+				throw new HttpException(responseStatus.toString());
 		
 			return("");
 		}

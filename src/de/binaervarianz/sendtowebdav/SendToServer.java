@@ -9,7 +9,6 @@ import java.util.Date;
 import org.apache.http.HttpException;
 import org.apache.http.client.ClientProtocolException;
 
-
 import android.app.Activity;
 import android.app.ProgressDialog;
 import android.content.Context;
@@ -47,8 +46,8 @@ public class SendToServer extends Activity {
 			new URI(serverURI);
 		} catch (URISyntaxException e) {
 			Log.e(TAG, "URISyntaxException: "+e);
-			// TODO: user error message (maybe also do this check when testing/saving) -- is inherently done!?
-			// TODO: alert dialog notifying users of broken url and redirecting them to the config app
+			// TODO: user error message
+			// TODO: alert dialog notifying users of broken url and redirecting them to the config app (only happens when no prefs have been saved)
 			// "Please provide a valid Server URI in the Config App first"
 			return;
 		}
@@ -79,7 +78,6 @@ public class SendToServer extends Activity {
 			String url = "";
 			SimpleDateFormat dateformater = new SimpleDateFormat("yyyyMMddHHmmss"); 
 			
-							
 			if (extras.containsKey(Intent.EXTRA_TEXT)) {	// simple text like URLs
 				url += extras.getString(Intent.EXTRA_TEXT);
 				

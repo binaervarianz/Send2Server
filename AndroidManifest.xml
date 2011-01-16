@@ -14,10 +14,10 @@
 			<intent-filter>
 				<action android:name="android.intent.action.SEND"></action>
 				<category android:name="android.intent.category.DEFAULT"></category>
-				<data android:mimeType="text/plain"></data>
-				<data android:mimeType="image/jpeg"></data>
-				<data android:mimeType="image/png"></data>
-				<data android:mimeType="image/gif"></data>
+<!-- I would go for arbitrary data (ie. all MIME types).
+     Nonetheless, a good overview of common MIME types can be found at
+     https://code.google.com/p/openintents/source/browse/trunk/filemanager/FileManager/res/xml/mimetypes.xml -->
+				<data android:mimeType="*/*"></data>
 			</intent-filter>
 		</activity>
 	</application>

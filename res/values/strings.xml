@@ -10,14 +10,13 @@
 	<string name="testButton">Test</string>
 	<string name="deployServerButton">Deploy Server</string>
 	<string name="trustAllSSLCerts">Trust all SSL certificates</string>
-	<string name="data_send">#SendToServer: Data send!</string>
+	<string name="data_sending">Sending...</string>
+	<string name="data_sending_failure">Failure while sending data!</string>
+	<string name="data_send">Data send!</string>
 	<string name="settings_saved">Settings saved!</string>
 	<string name="settings_not_saved">Settings NOT saved!</string>
 	<string name="connection_success">Connection successful!</string>
 	<string name="connection_failed">Connection failed!</string>
 	<string name="testing_saving_progress">Testing &amp; Saving. Please wait...</string>
 	<string name="testing_progress">Testing Connection. Please wait...</string>
-	<string name="sending">Sending ...</string>
-	<string name="failure">Failure while sending</string>
-
 </resources>

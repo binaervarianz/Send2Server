@@ -85,27 +85,27 @@ public class WebDAVhandler {
 	/**
 	 * Connects to the previously saved server address and puts a binary file with the given name and content there.
 	 * 
-	 * @param filename String with filename to be created on the server
-	 * @param path String with the server side path to put the file
-	 * @param filePath String with the client side (Android) path to the source file
+	 * @param fileFolderName String with filename to be created on the server
+	 * @param serverPath String with the server side path to put the file
+	 * @param localFilePath String with the client side (Android) path to the source file
 	 * @param type : String with MIME type of the data
 	 * @return boolean evaluating the http response code
 	 * @throws ClientProtocolException
 	 * @throws IOException
 	 */
-	public void putBinFile(String filename, String path, String filePath, String type)
+	public void putBinFile(String fileFolderName, String serverPath, String localFilePath, String type)
 			throws IllegalArgumentException, ClientProtocolException, IOException, HttpException {		
 		
 		// create collection on server
-		HttpMkcol mkcol = new HttpMkcol(serverURI  + path + filename + "/");
-		Log.d(TAG, "Folder to be created: " + filename + "/");
+		HttpMkcol mkcol = new HttpMkcol(serverURI  + serverPath + fileFolderName + "/");
+		Log.d(TAG, "Folder to be created: " + fileFolderName + "/");
 		
-		String file = filePath.substring(filePath.lastIndexOf('/')+1);
+		String file = localFilePath.substring(localFilePath.lastIndexOf('/')+1);
 		file = URLEncoder.encode(file, "UTF-8");
 		Log.d(TAG, "File to be created: " + file);
 		
-		HttpPut put = new HttpPut(serverURI  + path + filename + "/" + file);	
-		put.setEntity(new FileEntity(new File(filePath), type));
+		HttpPut put = new HttpPut(serverURI  + serverPath + fileFolderName + "/" + file);	
+		put.setEntity(new FileEntity(new File(localFilePath), type));
 				
 		put.addHeader("Content-type", type);
 

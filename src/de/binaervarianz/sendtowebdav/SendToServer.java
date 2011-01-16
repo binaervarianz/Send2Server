@@ -1,16 +1,11 @@
 package de.binaervarianz.sendtowebdav;
 
-import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 
-import org.apache.http.HttpException;
-import org.apache.http.client.ClientProtocolException;
-
 import android.app.Activity;
-import android.app.ProgressDialog;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
@@ -27,8 +22,6 @@ public class SendToServer extends Activity {
 	private final String TAG = this.getClass().getName();
 	
 	private WebDAVhandler httpHandler;
-	private ProgressDialog dialog;
-	private String name, filePath, type;
 
 	@Override
 	public void onCreate(Bundle savedInstanceState) {
@@ -58,9 +51,15 @@ public class SendToServer extends Activity {
 		Intent intent = getIntent();
 		Bundle extras = intent.getExtras();
 		
-		if (intent.getAction().equals(Intent.ACTION_SEND) && extras != null) {
-		//figure out what's to be send
+		// TODO: multiple files (Intent.ACTION_SEND_MULTIPLE ?)
 		
+		if (intent.getAction().equals(Intent.ACTION_SEND) && extras != null) {
+			//figure out what's to be send
+	
+/** PLEASE DELETE
+ * overview of common MIME types:
+ * https://code.google.com/p/openintents/source/browse/trunk/filemanager/FileManager/res/xml/mimetypes.xml
+ * Intent.ACTION_SEND docs: http://developer.android.com/reference/android/content/Intent.html#ACTION_SEND
 			//this is for debugging and getting information on new media types
 			this.type = intent.resolveType(this);
 			//URLS give text/plain, images image/jpeg ....
@@ -74,31 +73,21 @@ public class SendToServer extends Activity {
 				//no data so far attached to the intents
 			}			
 			/// end of debug, resume normal operation			
-			
+ */			
 			String url = "";
-			SimpleDateFormat dateformater = new SimpleDateFormat("yyyyMMddHHmmss"); 
+			SimpleDateFormat dateFormater = new SimpleDateFormat("yyyyMMddHHmmss"); 
 			
-			if (extras.containsKey(Intent.EXTRA_TEXT)) {	// simple text like URLs
+			// simple text like URLs
+			if (extras.containsKey(Intent.EXTRA_TEXT)) {
 				url += extras.getString(Intent.EXTRA_TEXT);
 				
 				try {
 					// sending an URL is fast, so do it here
-					httpHandler.putFile("URL-"+dateformater.format(new Date())+".txt", "", url);
-				} catch (ClientProtocolException e) {
-					Toast.makeText(this, this.getString(R.string.app_name) + ": ClientProtocolException: "+e, Toast.LENGTH_LONG).show();
-					Log.e(TAG, "ClientProtocolException: "+e);
-					return;
-				} catch (IOException e) {
-					Toast.makeText(this, this.getString(R.string.app_name) + ": IOException: "+e, Toast.LENGTH_LONG).show();
-					Log.e(TAG, "IOException: "+e);
-					return;
-				} catch (IllegalArgumentException e) {
-					Toast.makeText(this, this.getString(R.string.app_name) + ": IllegalArgumentException: "+e, Toast.LENGTH_LONG).show();
-					Log.e(TAG, "IllegalArgumentException: "+e);
-					return;
-				} catch (HttpException e) {
-					Toast.makeText(this, this.getString(R.string.app_name) + ": HttpException: "+e, Toast.LENGTH_LONG).show();
-					Log.e(TAG, "HttpException: "+e);
+					// TODO: also put this in a thread. makes the user experience more responsive and consistent
+					httpHandler.putFile("URL-"+dateFormater.format(new Date())+".txt", "", url);
+				} catch (Exception e) {
+					Toast.makeText(this, this.getString(R.string.app_name) + ": " + e.getClass().getSimpleName() + ": " + e.getLocalizedMessage(), Toast.LENGTH_LONG).show();
+					Log.e(TAG, e.getClass().getSimpleName() + ": " + e.getLocalizedMessage());
 					return;
 				}
 				
@@ -106,34 +95,35 @@ public class SendToServer extends Activity {
 				Toast.makeText(this, R.string.data_send, Toast.LENGTH_SHORT).show();
 				this.finish();
 				
-			} else if (extras.containsKey(Intent.EXTRA_STREAM)) {	// binary files
-				Uri contentUri = (Uri) extras.get(Intent.EXTRA_STREAM);
+			// binary files
+			} else if (extras.containsKey(Intent.EXTRA_STREAM)) {
+				String filePath = "";
+				Uri contentUri = (Uri)extras.get(Intent.EXTRA_STREAM);
 				
 				//debug
 				Log.d(TAG, contentUri.toString());
 				
-				
 				// there are real file system paths and logical content URIs
-				// I've so far only tested the first kind [chaos]
 				if (contentUri.toString().startsWith("content:")) {
-					this.filePath = this.getRealPathFromURI(contentUri);
-					Log.d(TAG,"path: "+this.filePath);
+					filePath = this.getRealPathFromURI(contentUri);
+					Log.d(TAG, "path: " + filePath);
 				} else if (contentUri.toString().startsWith("file:")){
-					this.filePath = contentUri.getPath();
-					Log.d(TAG,"path: "+this.filePath);
+					filePath = contentUri.getPath();
+					Log.d(TAG, "path: " + filePath);
 				}
 				
-				// create a basename out of the type identifier
+				// get the MIME type
+				String type = intent.resolveType(this);
+				
+				// create a basename out of the type identifier -- awesome! [matsch]
 				String basename = type.toUpperCase().charAt(0) + type.substring(1, type.indexOf('/'));
-				this.name = basename + "-" + dateformater.format(new Date());
+				basename = basename + "-" + dateFormater.format(new Date());
 				
-				//debug
-				Log.d(TAG, name);
+				// sending files may take time, so do it in another thread
+				Toast.makeText(this, this.getString(R.string.app_name) + ": " + this.getString(R.string.data_sending), Toast.LENGTH_SHORT).show();
+				new SendThread(handler, basename, "", filePath, type).start();
 				
-				// sending files may take time, so do it in another thread and give a progress dialog
-				dialog = ProgressDialog.show(SendToServer.this, "", SendToServer.this.getString(R.string.sending), true);
-				new SendThread(handler).start();
-				
+				this.finish(); // seems to work fine here (ie. the thread does continue and reports success/failure)
 			}	
 		}
 		Log.d(TAG, "Activity closed");
@@ -141,6 +131,7 @@ public class SendToServer extends Activity {
 	
 	/**
 	 * convert a <content:> URI (like from the gallery) to an absolute path
+	 * TODO: is this generally applicable or only for images? what about videos in the gallery? what about other media in the mediastore outside of the gallery?
 	 * 
 	 * This is stolen from http://stackoverflow.com/questions/3401579/android-get-filename-and-path-from-uri-from-mediastore
 	 * @param contentUri
@@ -157,10 +148,10 @@ public class SendToServer extends Activity {
 	// Define the Handler that receives messages from the thread and update the progress
     final Handler handler = new Handler() {
         public void handleMessage(Message msg) {
-        	dialog.dismiss();
-        	Bundle data = msg.peekData();
-        	if (data != null) {
-            	Toast.makeText(SendToServer.this, getString(R.string.failure) +": /n" + data.getString("exception") , Toast.LENGTH_LONG).show();
+        	if (msg.what == 0) {
+        		Toast.makeText(SendToServer.this, getString(R.string.app_name) + ": " + getString(R.string.data_send), Toast.LENGTH_LONG).show();
+        	} else {
+        		Toast.makeText(SendToServer.this, getString(R.string.app_name) + ": " + getString(R.string.data_sending_failure) + ": /r/n" + (String)msg.obj, Toast.LENGTH_LONG).show();
         	}
         	SendToServer.this.finish();
         }
@@ -168,49 +159,35 @@ public class SendToServer extends Activity {
     
 	private class SendThread extends Thread {
         Handler mHandler;
-       
-        SendThread(Handler h) {
+        String name, path, localPath, type;
+        
+        SendThread(Handler h, String name, String path, String localPath, String type) {
             mHandler = h;
+            this.name= name;
+            this.path = path;
+            this.localPath = localPath;
+            this.type = type;
         }
        
         public void run() {
+        	
         	try {
-        		httpHandler.putBinFile( name, "", filePath, type);        	
-			} catch (ClientProtocolException e) {				
-				Log.e(TAG, "ClientProtocolException: "+e);
-				Message m = Message.obtain();
-				Bundle b = new Bundle(1);
-				b.putString("exception", e.toString());
-				m.setData(b);
-				mHandler.sendMessage(m);
-				return;
-			} catch (IOException e) {
-				Log.e(TAG, "IOException: "+e);
-				Message m = Message.obtain();
-				Bundle b = new Bundle(1);
-				b.putString("exception", e.toString());
-				m.setData(b);
-				mHandler.sendMessage(m);
-				return;
-			} catch (IllegalArgumentException e) {
-				Log.e(TAG, "IllegalArgumentException: "+e);
-				Message m = Message.obtain();
-				Bundle b = new Bundle(1);
-				b.putString("exception", e.toString());
-				m.setData(b);
-				mHandler.sendMessage(m);
-				return;
-			} catch (HttpException e) {
-				Log.e(TAG, "HttpException: "+e);
-				Message m = Message.obtain();
-				Bundle b = new Bundle(1);
-				b.putString("exception", e.toString());
-				m.setData(b);
-				mHandler.sendMessage(m);
-				return;
-			}
+        		httpHandler.putBinFile(name, path, localPath, type);   
+        	} catch (Exception e) {
+        		// can be:
+        		// - ClientProtocolException:
+        		// - IOException
+        		// - IllegalArgumentException: invalid URL supplied (e.g. only "https://")
+        		// - HttpException: HTTP response status codes >= 400
+        		Log.e(TAG, e.getClass().getSimpleName() + ": " + e.getMessage());
+        		
+        		Message msg = mHandler.obtainMessage();
+        		msg.obj = e.getClass().getSimpleName() + ": " + e.getLocalizedMessage();
+                msg.what = 1;
+                mHandler.sendMessage(msg);
+        		return;
+        	}
         	mHandler.sendEmptyMessage(0);
         }
     }
-	
 }

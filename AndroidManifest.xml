@@ -19,6 +19,14 @@
      https://code.google.com/p/openintents/source/browse/trunk/filemanager/FileManager/res/xml/mimetypes.xml -->
 				<data android:mimeType="*/*"></data>
 			</intent-filter>
+			<intent-filter>
+				<action android:name="android.intent.action.SEND_MULTIPLE"></action>
+				<category android:name="android.intent.category.DEFAULT"></category>
+<!-- I would go for arbitrary data (ie. all MIME types).
+     Nonetheless, a good overview of common MIME types can be found at
+     https://code.google.com/p/openintents/source/browse/trunk/filemanager/FileManager/res/xml/mimetypes.xml -->
+				<data android:mimeType="*/*"></data>
+			</intent-filter>
 		</activity>
 	</application>
 	

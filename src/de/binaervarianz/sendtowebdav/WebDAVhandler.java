@@ -82,6 +82,11 @@ public class WebDAVhandler {
 			throw new HttpException(responseStatus.toString());
 	}
 	
+	public void putBinFile(String fileFolderName, String serverPath, String localFilePath, String type) 
+			throws IllegalArgumentException, ClientProtocolException, IOException, HttpException {
+		putBinFile(fileFolderName, serverPath, localFilePath, type, false);
+	}
+	
 	/**
 	 * Connects to the previously saved server address and puts a binary file with the given name and content there.
 	 * 
@@ -89,12 +94,13 @@ public class WebDAVhandler {
 	 * @param serverPath String with the server side path to put the file
 	 * @param localFilePath String with the client side (Android) path to the source file
 	 * @param type : String with MIME type of the data
+	 * @param subsequentCalls : if this request has subsequent calls (ie. files put into the same directory)
 	 * @return boolean evaluating the http response code
 	 * @throws ClientProtocolException
 	 * @throws IOException
 	 */
-	public void putBinFile(String fileFolderName, String serverPath, String localFilePath, String type)
-			throws IllegalArgumentException, ClientProtocolException, IOException, HttpException {		
+	public void putBinFile(String fileFolderName, String serverPath, String localFilePath, String type, boolean subsequentCalls)
+			throws IllegalArgumentException, ClientProtocolException, IOException, HttpException {
 		
 		// create collection on server
 		HttpMkcol mkcol = new HttpMkcol(serverURI  + serverPath + fileFolderName + "/");
@@ -112,7 +118,7 @@ public class WebDAVhandler {
 		DefaultHttpClient http = this.prepareHttpClient(user, pass);
 		
 		Log.d(TAG, "HTTP MKCOL Request");
-		HttpResponse response = http.execute(mkcol);		// TODO: currently no error handling or response checking
+		HttpResponse response = http.execute(mkcol);
 		StatusLine responseStatus = response.getStatusLine();	
 		// debug
 		Log.d(TAG, "StatusLine: "
@@ -120,7 +126,8 @@ public class WebDAVhandler {
 				+ " URL: " + serverURI);
 		
 		// evaluate the HTTP response status code
-		if (responseStatus.getStatusCode() >= 400)
+		// ignore 405 (Method Not Allowed) for subsequent calls
+		if (responseStatus.getStatusCode() >= 400 && (responseStatus.getStatusCode() != 405 && subsequentCalls))
 			throw new HttpException(responseStatus.toString());
 		
 		Log.d(TAG, "HTTP PUT Request");

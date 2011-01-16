@@ -6,6 +6,9 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 
 import android.app.Activity;
+import android.app.Notification;
+import android.app.NotificationManager;
+import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
@@ -16,6 +19,7 @@ import android.os.Handler;
 import android.os.Message;
 import android.provider.MediaStore;
 import android.util.Log;
+import android.widget.RemoteViews;
 import android.widget.Toast;
 
 public class SendToServer extends Activity {
@@ -160,6 +164,10 @@ public class SendToServer extends Activity {
 	private class SendThread extends Thread {
         Handler mHandler;
         String name, path, localPath, type;
+        Notification notification;
+        NotificationManager notificationManager; 
+        Intent intent = new Intent(SendToServer.this, SendToServer.class);
+        final PendingIntent pendingIntent = PendingIntent.getActivity(getApplicationContext(), 0, intent, 0);
         
         SendThread(Handler h, String name, String path, String localPath, String type) {
             mHandler = h;
@@ -167,12 +175,35 @@ public class SendToServer extends Activity {
             this.path = path;
             this.localPath = localPath;
             this.type = type;
+            
+            int progress = 10;      
+            this.notificationManager = (NotificationManager) getApplicationContext().getSystemService(getApplicationContext().NOTIFICATION_SERVICE);
+            
+            this.notification = new Notification(R.drawable.icon, String.format("Sending %s",name), System.currentTimeMillis());
+            this.notification.setLatestEventInfo(getApplicationContext(), "SendToWebDAV", String.format("Uploading %s to WebDAV", name), pendingIntent);
+            this.notification.flags = notification.flags | Notification.FLAG_ONGOING_EVENT;
+            this.notification.contentView = new RemoteViews(getApplicationContext().getPackageName(), R.layout.download_progress);
+            this.notification.defaults = Notification.DEFAULT_ALL; //default virbrate, lights and sound
+//            this.notification.contentIntent = pendingIntent;
+             this.notification.contentView.setImageViewResource(R.id.status_icon, R.drawable.icon);
+             this.notification.contentView.setTextViewText(R.id.status_text, String.format("Uploading %s to WebDAV", name));
+             this.notification.contentView.setProgressBar(R.id.status_progress, 100, progress, false);            
+
+            this.notificationManager.notify(42, notification);
         }
        
         public void run() {
         	
         	try {
-        		httpHandler.putBinFile(name, path, localPath, type);   
+        		this.notification.contentView.setProgressBar(R.id.status_progress, 100, 30, false);                
+                this.notificationManager.notify(42, notification);
+                
+        		httpHandler.putBinFile(name, path, localPath, type);  
+        		this.notification.contentView.setProgressBar(R.id.status_progress, 100, 90, false);                
+                this.notificationManager.notify(42, notification);
+                
+                notificationManager.cancel(42);
+                
         	} catch (Exception e) {
         		// can be:
         		// - ClientProtocolException:

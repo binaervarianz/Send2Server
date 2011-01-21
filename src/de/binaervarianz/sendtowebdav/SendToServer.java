@@ -3,6 +3,7 @@ package de.binaervarianz.sendtowebdav;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Date;
 
 import android.app.Activity;
@@ -55,36 +56,18 @@ public class SendToServer extends Activity {
 		Intent intent = getIntent();
 		Bundle extras = intent.getExtras();
 		
-		// TODO: multiple files (Intent.ACTION_SEND_MULTIPLE ?)
-		
-		if (intent.getAction().equals(Intent.ACTION_SEND) && extras != null) {
+		if ((intent.getAction().equals(Intent.ACTION_SEND) || intent.getAction().equals(Intent.ACTION_SEND_MULTIPLE)) 
+				&& extras != null) {
 			//figure out what's to be send
 	
-/** PLEASE DELETE
- * overview of common MIME types:
- * https://code.google.com/p/openintents/source/browse/trunk/filemanager/FileManager/res/xml/mimetypes.xml
- * Intent.ACTION_SEND docs: http://developer.android.com/reference/android/content/Intent.html#ACTION_SEND
-			//this is for debugging and getting information on new media types
-			this.type = intent.resolveType(this);
-			//URLS give text/plain, images image/jpeg ....
-			Log.d(TAG, this.type);
-			for (String s : extras.keySet()) {
-				Log.d(TAG, s);
-				//Urls give EXTRA_TEXT, images EXTRA_STREAM
-			}
-			if (intent.getDataString() != null) {
-				Log.d(TAG, intent.getDataString());	
-				//no data so far attached to the intents
-			}			
-			/// end of debug, resume normal operation			
- */			
 			String url = "";
-			SimpleDateFormat dateFormater = new SimpleDateFormat("yyyyMMddHHmmss"); 
+			SimpleDateFormat dateFormater = new SimpleDateFormat("yyyyMMddHHmmss");
 			
 			// simple text like URLs
 			if (extras.containsKey(Intent.EXTRA_TEXT)) {
 				url += extras.getString(Intent.EXTRA_TEXT);
 				
+				// TODO: support multiple strings (not sure which app would do that, but there is probably one out there)
 				try {
 					// sending an URL is fast, so do it here
 					// TODO: also put this in a thread. makes the user experience more responsive and consistent
@@ -101,33 +84,46 @@ public class SendToServer extends Activity {
 				
 			// binary files
 			} else if (extras.containsKey(Intent.EXTRA_STREAM)) {
-				String filePath = "";
-				Uri contentUri = (Uri)extras.get(Intent.EXTRA_STREAM);
-				
-				//debug
-				Log.d(TAG, contentUri.toString());
-				
-				// there are real file system paths and logical content URIs
-				if (contentUri.toString().startsWith("content:")) {
-					filePath = this.getRealPathFromURI(contentUri);
-					Log.d(TAG, "path: " + filePath);
-				} else if (contentUri.toString().startsWith("file:")){
-					filePath = contentUri.getPath();
-					Log.d(TAG, "path: " + filePath);
+				ArrayList<Uri> files = new ArrayList<Uri>();
+				if (intent.getAction().equals(Intent.ACTION_SEND_MULTIPLE)) {
+					files = (ArrayList<Uri>)extras.get(Intent.EXTRA_STREAM);
+				} else {
+					files.add((Uri)extras.get(Intent.EXTRA_STREAM));
 				}
-				
-				// get the MIME type
-				String type = intent.resolveType(this);
+
+				// get the MIME type of the whole intent
+				String intentType = intent.resolveType(this);
 				
 				// create a basename out of the type identifier -- awesome! [matsch]
-				String basename = type.toUpperCase().charAt(0) + type.substring(1, type.indexOf('/'));
+				String basename = intentType.toUpperCase().charAt(0) + intentType.substring(1, intentType.indexOf('/'));
 				basename = basename + "-" + dateFormater.format(new Date());
 				
-				// sending files may take time, so do it in another thread
-				Toast.makeText(this, this.getString(R.string.app_name) + ": " + this.getString(R.string.data_sending), Toast.LENGTH_SHORT).show();
-				new SendThread(handler, basename, "", filePath, type).start();
+				for (Uri contentUri : files) {
+					String filePath = "";
+					String fileType = "";
+					
+					//debug
+					Log.d(TAG, contentUri.toString());
+					
+					// there are real file system paths and logical content URIs
+					if (contentUri.toString().startsWith("content:")) {
+						filePath = this.getRealPathFromURI(contentUri);
+						Log.d(TAG, "path: " + filePath);
+						fileType = this.getContentResolver().getType(contentUri);
+					} else if (contentUri.toString().startsWith("file:")){
+						filePath = contentUri.getPath();
+						Log.d(TAG, "path: " + filePath);
+						fileType = intentType; // TODO: I guess this is not always correct (see not other way to do it right now)
+					}
+					
+					Log.d(TAG, "fileType: "+fileType);
+					
+					// sending files may take time, so do it in another thread
+					Toast.makeText(this, this.getString(R.string.app_name) + ": " + this.getString(R.string.data_sending), Toast.LENGTH_SHORT).show();
+					new SendThread(handler, basename, "", filePath, fileType, (files.size()>1)).start();
+				}
 				
-				this.finish(); // seems to work fine here (ie. the thread does continue and reports success/failure)
+				this.finish(); // seems to work fine here (ie. the thread does continue and also reports success/failure)
 			}	
 		}
 		Log.d(TAG, "Activity closed");
@@ -168,15 +164,17 @@ public class SendToServer extends Activity {
         NotificationManager notificationManager; 
         Intent intent = new Intent(SendToServer.this, SendToServer.class);
         final PendingIntent pendingIntent = PendingIntent.getActivity(getApplicationContext(), 0, intent, 0);
+        boolean subsequentCalls;
         
-        SendThread(Handler h, String name, String path, String localPath, String type) {
+        SendThread(Handler h, String name, String path, String localPath, String type, boolean subsequentCalls) {
             mHandler = h;
             this.name= name;
             this.path = path;
             this.localPath = localPath;
             this.type = type;
             
-            int progress = 10;      
+            int progress = 10;    
+            
             this.notificationManager = (NotificationManager) getApplicationContext().getSystemService(getApplicationContext().NOTIFICATION_SERVICE);
             
             this.notification = new Notification(R.drawable.icon, String.format("Sending %s",name), System.currentTimeMillis());
@@ -184,12 +182,15 @@ public class SendToServer extends Activity {
             this.notification.flags = notification.flags | Notification.FLAG_ONGOING_EVENT;
             this.notification.contentView = new RemoteViews(getApplicationContext().getPackageName(), R.layout.download_progress);
             this.notification.defaults = Notification.DEFAULT_ALL; //default virbrate, lights and sound
-//            this.notification.contentIntent = pendingIntent;
-             this.notification.contentView.setImageViewResource(R.id.status_icon, R.drawable.icon);
-             this.notification.contentView.setTextViewText(R.id.status_text, String.format("Uploading %s to WebDAV", name));
-             this.notification.contentView.setProgressBar(R.id.status_progress, 100, progress, false);            
+
+            this.notification.contentView.setImageViewResource(R.id.status_icon, R.drawable.icon);
+            this.notification.contentView.setTextViewText(R.id.status_text, String.format("Uploading %s to WebDAV", name));
+            this.notification.contentView.setProgressBar(R.id.status_progress, 100, progress, false);            
 
             this.notificationManager.notify(42, notification);
+
+            this.subsequentCalls = subsequentCalls;
+
         }
        
         public void run() {
@@ -203,7 +204,9 @@ public class SendToServer extends Activity {
                 this.notificationManager.notify(42, notification);
                 
                 notificationManager.cancel(42);
-                
+
+        		httpHandler.putBinFile(name, path, localPath, type, subsequentCalls);   
+
         	} catch (Exception e) {
         		// can be:
         		// - ClientProtocolException:

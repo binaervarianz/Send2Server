@@ -23,6 +23,7 @@ import org.apache.http.conn.scheme.Scheme;
 import org.apache.http.conn.scheme.SchemeRegistry;
 import org.apache.http.conn.ssl.SSLSocketFactory;
 import org.apache.http.entity.FileEntity;
+import org.apache.http.entity.InputStreamEntity;
 import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.BasicCredentialsProvider;
 import org.apache.http.impl.client.DefaultHttpClient;
@@ -51,7 +52,7 @@ public class WebDAVhandler {
 	 * Connects to the previously saved server address and puts a file with the given name and content there.
 	 * 
 	 * @param filename
-	 * @param path
+	 * @param path -- TODO: if path is actually provided and the folders do not exist, they don't get created
 	 * @param data : file contents
 	 * @return boolean evaluating the http response code
 	 * @throws ClientProtocolException
@@ -143,7 +144,47 @@ public class WebDAVhandler {
 		if (responseStatus.getStatusCode() >= 400)
 			throw new HttpException(responseStatus.toString());
 	}
-	
+
+	public void putStream(String filename, String path, InputStream dataStream, long length)
+			throws IllegalArgumentException, ClientProtocolException, IOException, HttpException {
+
+		DefaultHttpClient http = this.prepareHttpClient(user, pass);
+		
+		if (!path.equals("")) {
+			// create collection on server
+			HttpMkcol mkcol = new HttpMkcol(serverURI  + path + "/");
+			Log.d(TAG, "Folder to be created: " + path + "/");
+			
+			Log.d(TAG, "HTTP MKCOL Request");
+			HttpResponse response = http.execute(mkcol);
+			StatusLine responseStatus = response.getStatusLine();	
+			// debug
+			Log.d(TAG, "StatusLine: "
+					+ responseStatus.toString() + ", "
+					+ " URL: " + serverURI);
+			
+			// evaluate the HTTP response status code
+			// ignore 405 (Method Not Allowed), ie. when the directory already exists
+			if (responseStatus.getStatusCode() >= 400 && responseStatus.getStatusCode() != 405)
+				throw new HttpException(responseStatus.toString());
+		}
+		
+		HttpPut put = new HttpPut(serverURI + "/" + path + "/" + filename);
+		put.setEntity(new InputStreamEntity(dataStream, length));
+		put.addHeader("Content-type", "text/plain"); // TODO: which one? it's only really text/plain in the deploy server case
+
+		HttpResponse response = http.execute(put);
+		StatusLine responseStatus = response.getStatusLine();
+
+		// debug
+		Log.d(TAG, "StatusLine: " + responseStatus.toString() + ", " + " URL: "
+				+ serverURI);
+
+		// evaluate the HTTP response status code
+		if (responseStatus.getStatusCode() >= 400)
+			throw new HttpException(responseStatus.toString());
+	}
+
 	/**
 	 * Removes file on remote server given by remotefile using HTTP DELETE method.
 	 * 

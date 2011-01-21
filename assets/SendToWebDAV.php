@@ -1,5 +1,15 @@
 <?php
 // ------------------------
+// Install
+// ------------------------
+// 1. configure the parameters below appropriately.
+// 2. copy this file to somewhere outside of the WebDAV directory provided
+//    below where your webserver can execute PHP files.
+// 3. rename the the file to SendToWebDAV.php (ie. remove the .txt at the end).
+// ------------------------
+
+
+// ------------------------
 // Configuration parameters
 // ------------------------
 
@@ -7,6 +17,7 @@ $maxstrlen = 50;        // set the max length of text taken from a file for the 
 $filepath = '/webdav/'; // path where the uploaded files are located, relative to this files location
 
 // ------------------------
+
 
 $protocol = (isset($_SERVER["HTTPS"])) ? 'https://' : 'http://';
 $server = $protocol.$_SERVER['HTTP_HOST'];
@@ -20,6 +31,7 @@ $server = $protocol.$_SERVER['HTTP_HOST'];
 <description>Feed of all uploaded links and files</description>
 <language>en</language>
 <lastBuildDate><?php echo date('D, d M Y H:i:s O'); ?></lastBuildDate>
+
 
 <?php 
 //  /------------------\

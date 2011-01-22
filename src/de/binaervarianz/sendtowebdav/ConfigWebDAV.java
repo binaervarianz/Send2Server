@@ -1,9 +1,13 @@
 package de.binaervarianz.sendtowebdav;
 
+import java.io.IOException;
+import java.io.InputStream;
+
 import android.app.Activity;
 import android.app.ProgressDialog;
 import android.content.Context;
 import android.content.SharedPreferences;
+import android.content.res.AssetManager;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
@@ -29,6 +33,8 @@ public class ConfigWebDAV extends Activity {
 	private static final int SENDER_DEPLOY = 3;
 	
 	private ProgressDialog dialog;
+	
+	private WebDAVhandler httpHandler;
 	
     /** Called when the activity is first created. */
     @Override
@@ -63,15 +69,39 @@ public class ConfigWebDAV extends Activity {
             }
         });
         
-        // deploy server button
-        final Button deployServerButton = (Button)findViewById(R.id.deployServerButton);
-        deployServerButton.setOnClickListener(new View.OnClickListener() {
-            public void onClick(View v) {
-            	// TODO: put an attached .zip file with server components and a README on server
-            	//new DeployThread(handler).start();
-            	Toast.makeText(ConfigWebDAV.this, "TODO", Toast.LENGTH_SHORT).show();
-            }
-        });
+		// deploy server button
+		final Button deployServerButton = (Button) findViewById(R.id.deployServerButton);
+		deployServerButton.setOnClickListener(new View.OnClickListener() {
+			public void onClick(View v) {
+				dialog = ProgressDialog.show(ConfigWebDAV.this, "", ConfigWebDAV.this.getString(R.string.deploy_progress), true);
+				sender = SENDER_DEPLOY;
+
+				AssetManager assetManager = getAssets();
+				InputStream stream = null;
+				long length = 0L;
+				try {
+					stream = assetManager.open("SendToWebDAV.php");
+					
+					// ugly construct to get the length of the InputStream/file
+					long skip = 1L;
+					while (skip > 0L) {
+						skip = stream.skip(Integer.MAX_VALUE);
+						length += skip;
+					} 
+					stream =  assetManager.open("SendToWebDAV.php"); // reset the stream
+					
+					new SendThread(handler, "SendToWebDAV.php.txt", "php", stream, length).start();
+				} catch (IOException e) {
+					Log.d(TAG, e.getClass().getSimpleName() + ": " + e.getMessage());
+				} finally {
+					if (stream != null) {
+						try {
+							stream.close();
+						} catch (IOException e) {}
+					}
+				}
+			}
+		});
     }
     
     /**
@@ -84,7 +114,7 @@ public class ConfigWebDAV extends Activity {
      * @return boolean, true for test passed
      */
 	private Exception checkConnection(String serverURI, String user, String pass, boolean trustSSLCerts) {
-    	WebDAVhandler httpHandler = new WebDAVhandler(serverURI, user, pass);
+    	httpHandler = new WebDAVhandler(serverURI, user, pass);
     	httpHandler.setTrustAllSSLCerts(trustSSLCerts);
     	boolean testResult;
     	
@@ -119,6 +149,9 @@ public class ConfigWebDAV extends Activity {
         			case SENDER_SAVE:
         				Toast.makeText(ConfigWebDAV.this, R.string.settings_saved, Toast.LENGTH_SHORT).show();
         				break;
+        			case SENDER_DEPLOY:
+        				Toast.makeText(ConfigWebDAV.this, R.string.server_deployed, Toast.LENGTH_SHORT).show();
+        				break;
         		}
         	} else {
         		Toast.makeText(ConfigWebDAV.this, (String)msg.obj, Toast.LENGTH_LONG).show();
@@ -128,6 +161,9 @@ public class ConfigWebDAV extends Activity {
     					break;
     				case SENDER_SAVE:
     					Toast.makeText(ConfigWebDAV.this, R.string.settings_not_saved, Toast.LENGTH_LONG).show();
+    					break;
+    				case SENDER_DEPLOY:
+    					Toast.makeText(ConfigWebDAV.this, R.string.server_not_deployed, Toast.LENGTH_SHORT).show();
     					break;
         		}
         	}
@@ -204,6 +240,64 @@ public class ConfigWebDAV extends Activity {
                 msg.what = 1;
         	}
             mHandler.sendMessage(msg);
+        }
+    }
+    
+	private class SendThread extends Thread {
+        Handler mHandler;
+        String name, path;
+        InputStream dataStream;
+        long length;
+        
+        // for streams
+        public SendThread(Handler h, String name, String path, InputStream dataStream, long length) {
+			mHandler = h;
+			this.name = name;
+			this.path = path;
+			this.dataStream = dataStream;
+			this.length = length;
+		}
+       
+        public void run() {
+        	String serverURI = ((EditText)findViewById(R.id.server_uri_input)).getText().toString();
+        	boolean trustAllSSLCerts = ((CheckBox)findViewById(R.id.trustAllSSLCerts)).isChecked();
+        	String user = ((EditText)findViewById(R.id.user_name_input)).getText().toString();
+        	String pass = ((EditText)findViewById(R.id.pass_input)).getText().toString();
+        	
+        	// sanitize the URL string & append '/' if not already present
+        	serverURI = serverURI.trim();
+        	if  (!serverURI.endsWith("/"))
+        		serverURI = serverURI + "/";
+        	
+        	Exception e = checkConnection(serverURI, user, pass, trustAllSSLCerts); 
+        	
+			Message msg = mHandler.obtainMessage();
+			if (e == null) {
+				msg.what = 0;
+				
+				try {
+					if (dataStream != null)
+						httpHandler.putStream(name, path, dataStream, length);
+				} catch (Exception e1) {
+					// can be:
+					// - ClientProtocolException:
+					// - IOException
+					// - IllegalArgumentException: invalid URL supplied (e.g.
+					// only "https://")
+					// - HttpException: HTTP response status codes >= 400
+					Log.e(TAG, e1.getClass().getSimpleName() + ": "
+							+ e1.getMessage());
+
+					msg.obj = e1.getClass().getSimpleName() + ": "
+							+ e1.getLocalizedMessage();
+					msg.what = 1;
+				}
+			} else {
+				msg.obj = e.getClass().getSimpleName() + ": "
+						+ e.getLocalizedMessage();
+				msg.what = 1;
+			}
+			mHandler.sendMessage(msg);
         }
     }
 }

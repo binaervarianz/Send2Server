@@ -19,4 +19,7 @@
 	<string name="connection_failed">Connection failed!</string>
 	<string name="testing_saving_progress">Testing &amp; Saving. Please wait...</string>
 	<string name="testing_progress">Testing Connection. Please wait...</string>
+	<string name="server_deployed">Server component deployed!</string>
+	<string name="server_not_deployed">Server component NOT deployed!</string>
+	<string name="deploy_progress">Deploying Server Component. Please wait...</string>
 </resources>

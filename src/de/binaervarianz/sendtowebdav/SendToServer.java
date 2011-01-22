@@ -60,26 +60,29 @@ public class SendToServer extends Activity {
 				&& extras != null) {
 			//figure out what's to be send
 	
-			String url = "";
 			SimpleDateFormat dateFormater = new SimpleDateFormat("yyyyMMddHHmmss");
 			
 			// simple text like URLs
 			if (extras.containsKey(Intent.EXTRA_TEXT)) {
-				url += extras.getString(Intent.EXTRA_TEXT);
-				
-				// TODO: support multiple strings (not sure which app would do that, but there is probably one out there)
-				try {
-					// sending an URL is fast, so do it here
-					// TODO: also put this in a thread. makes the user experience more responsive and consistent
-					httpHandler.putFile("URL-"+dateFormater.format(new Date())+".txt", "", url);
-				} catch (Exception e) {
-					Toast.makeText(this, this.getString(R.string.app_name) + ": " + e.getClass().getSimpleName() + ": " + e.getLocalizedMessage(), Toast.LENGTH_LONG).show();
-					Log.e(TAG, e.getClass().getSimpleName() + ": " + e.getLocalizedMessage());
-					return;
+				ArrayList<String> urls = new ArrayList<String>();
+				if (intent.getAction().equals(Intent.ACTION_SEND_MULTIPLE)) {
+					urls = (ArrayList<String>)extras.get(Intent.EXTRA_TEXT);
+				} else {
+					urls.add((String)extras.get(Intent.EXTRA_TEXT));
 				}
 				
-				// just a small message that the URL was send
-				Toast.makeText(this, R.string.data_send, Toast.LENGTH_SHORT).show();
+				for (String url : urls) {
+					new SendThread(handler, "URL-"+dateFormater.format(new Date())+".txt", "", url).start();
+					
+					if (urls.size() > 1) {
+						try {
+							wait(1000); // wait one second: just a lazy way to avoid duplicate timestamp problems
+						} catch (InterruptedException e) {
+							e.printStackTrace();
+						}
+					}
+				}
+				
 				this.finish();
 				
 			// binary files
@@ -113,7 +116,7 @@ public class SendToServer extends Activity {
 					} else if (contentUri.toString().startsWith("file:")){
 						filePath = contentUri.getPath();
 						Log.d(TAG, "path: " + filePath);
-						fileType = intentType; // TODO: I guess this is not always correct (see not other way to do it right now)
+						fileType = intentType; // TODO: I guess this is not always correct (I see no other way to do it right now)
 					}
 					
 					Log.d(TAG, "fileType: "+fileType);
@@ -159,13 +162,23 @@ public class SendToServer extends Activity {
     
 	private class SendThread extends Thread {
         Handler mHandler;
-        String name, path, localPath, type;
+        String name, path, localPath, type, data;
         Notification notification;
         NotificationManager notificationManager; 
         Intent intent = new Intent(SendToServer.this, SendToServer.class);
         final PendingIntent pendingIntent = PendingIntent.getActivity(getApplicationContext(), 0, intent, 0);
+        
         boolean subsequentCalls;
         
+        // for URLs
+        public SendThread(Handler h, String name, String path, String data) {
+			mHandler = h;
+			this.name = name;
+			this.path = path;
+			this.data = data;
+		}
+        
+        // for binary files
         SendThread(Handler h, String name, String path, String localPath, String type, boolean subsequentCalls) {
             mHandler = h;
             this.name= name;
@@ -204,8 +217,12 @@ public class SendToServer extends Activity {
                 this.notificationManager.notify(42, notification);
                 
                 notificationManager.cancel(42);
+                
+                if (localPath != null)
+                	httpHandler.putBinFile(name, path, localPath, type, subsequentCalls);   
 
-        		httpHandler.putBinFile(name, path, localPath, type, subsequentCalls);   
+        		if (data != null)
+        			httpHandler.putFile(name, path, data);
 
         	} catch (Exception e) {
         		// can be:

@@ -54,6 +54,8 @@ public class SendToServer extends Activity {
 		httpHandler.setTrustAllSSLCerts(trustAllSSLCerts);
 
 		Intent intent = getIntent();
+		Log.d(TAG, "Delivered Intent: " + intent.toString());
+		
 		Bundle extras = intent.getExtras();
 		
 		if ((intent.getAction().equals(Intent.ACTION_SEND) || intent.getAction().equals(Intent.ACTION_SEND_MULTIPLE)) 
@@ -106,7 +108,7 @@ public class SendToServer extends Activity {
 					String fileType = "";
 					
 					//debug
-					Log.d(TAG, contentUri.toString());
+					Log.d(TAG, "ContentURI :" + contentUri.toString());
 					
 					// there are real file system paths and logical content URIs
 					if (contentUri.toString().startsWith("content:")) {
@@ -123,6 +125,7 @@ public class SendToServer extends Activity {
 					
 					// sending files may take time, so do it in another thread
 					Toast.makeText(this, this.getString(R.string.app_name) + ": " + this.getString(R.string.data_sending), Toast.LENGTH_SHORT).show();
+					Log.d(TAG, "Start SendThread");
 					new SendThread(handler, basename, "", filePath, fileType, (files.size()>1)).start();
 				}
 				
@@ -164,22 +167,26 @@ public class SendToServer extends Activity {
         Handler mHandler;
         String name, path, localPath, type, data;
         Notification notification;
-        NotificationManager notificationManager; 
-        Intent intent = new Intent(SendToServer.this, SendToServer.class);
-        final PendingIntent pendingIntent = PendingIntent.getActivity(getApplicationContext(), 0, intent, 0);
+        NotificationManager notificationManager;        
+        //Intent intent = new Intent(Intent.ACTION_DELETE, new URI(name), SendToServer.this.getApplicationContext(), SendToServer.class);
+        Intent selfIntent = new Intent();// = new Intent(SendToServer.this.getApplicationContext(), SendToServer.class);   
+        PendingIntent pendingSelfIntent;// = PendingIntent.getActivity(getApplicationContext(), 0, this.selfIntent, 0);
         
         boolean subsequentCalls;
         
         // for URLs
         public SendThread(Handler h, String name, String path, String data) {
+        	Log.d(TAG, "SendThread Constructor(URL) called");
 			mHandler = h;
 			this.name = name;
 			this.path = path;
 			this.data = data;
+			
 		}
         
         // for binary files
         SendThread(Handler h, String name, String path, String localPath, String type, boolean subsequentCalls) {
+        	Log.d(TAG, "SendThread Constructor(BIN) called");
             mHandler = h;
             this.name= name;
             this.path = path;
@@ -188,13 +195,21 @@ public class SendToServer extends Activity {
             
             int progress = 10;    
             
+            this.selfIntent.setAction(Intent.ACTION_DELETE);
+            Log.d(TAG, "Intent Action set");
+			this.selfIntent.setClass(SendToServer.this.getApplicationContext(), SendToServer.class);
+			Log.d(TAG, "Intent created, category: ");
+			//this.intent = new Intent(SendToServer.this.getApplicationContext(), SendToServer.class);
+			this.pendingSelfIntent = PendingIntent.getActivity(getApplicationContext(), 0, this.selfIntent, 0);
+			Log.d(TAG, "pendingIntent created");
+			
             this.notificationManager = (NotificationManager) getApplicationContext().getSystemService(getApplicationContext().NOTIFICATION_SERVICE);
             
             this.notification = new Notification(R.drawable.icon, String.format("Sending %s",name), System.currentTimeMillis());
-            this.notification.setLatestEventInfo(getApplicationContext(), "SendToWebDAV", String.format("Uploading %s to WebDAV", name), pendingIntent);
-            this.notification.flags = notification.flags | Notification.FLAG_ONGOING_EVENT;
+            this.notification.setLatestEventInfo(getApplicationContext(), "SendToWebDAV", String.format("Uploading %s to WebDAV", name), this.pendingSelfIntent);
+            this.notification.flags = notification.flags | Notification.FLAG_ONGOING_EVENT | Notification.FLAG_ONLY_ALERT_ONCE;
             this.notification.contentView = new RemoteViews(getApplicationContext().getPackageName(), R.layout.download_progress);
-            this.notification.defaults = Notification.DEFAULT_ALL; //default virbrate, lights and sound
+            //this.notification.defaults = Notification.DEFAULT_ALL; //default vibrate, lights and sound
 
             this.notification.contentView.setImageViewResource(R.id.status_icon, R.drawable.icon);
             this.notification.contentView.setTextViewText(R.id.status_text, String.format("Uploading %s to WebDAV", name));
@@ -209,20 +224,19 @@ public class SendToServer extends Activity {
         public void run() {
         	
         	try {
-        		this.notification.contentView.setProgressBar(R.id.status_progress, 100, 30, false);                
-                this.notificationManager.notify(42, notification);
-                
-        		httpHandler.putBinFile(name, path, localPath, type);  
-        		this.notification.contentView.setProgressBar(R.id.status_progress, 100, 90, false);                
-                this.notificationManager.notify(42, notification);
-                
-                notificationManager.cancel(42);
+        		this.notification.contentView.setProgressBar(R.id.status_progress, 100, 30, false); 
+                this.notificationManager.notify(42, notification);                		
                 
                 if (localPath != null)
                 	httpHandler.putBinFile(name, path, localPath, type, subsequentCalls);   
 
         		if (data != null)
         			httpHandler.putFile(name, path, data);
+        		
+        		this.notification.contentView.setProgressBar(R.id.status_progress, 100, 90, false);                
+                this.notificationManager.notify(42, notification);
+                
+                notificationManager.cancel(42);
 
         	} catch (Exception e) {
         		// can be:

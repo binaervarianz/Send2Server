@@ -60,7 +60,8 @@ public class WebDAVhandler {
 	 */
 	public void putFile(String filename, String path, String data)
 			throws IllegalArgumentException, ClientProtocolException, IOException, HttpException {
-
+		
+		//Log.d(TAG, "putFile called");
 		HttpPut put = new HttpPut(serverURI + "/" + path + filename);
 		try {
 			put.setEntity(new StringEntity(data, "UTF8"));

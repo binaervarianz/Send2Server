@@ -25,6 +25,8 @@ import android.widget.Toast;
 
 public class SendToServer extends Activity {
 	private final String TAG = this.getClass().getName();
+	private static final boolean MODE_URL = true;
+	private static final boolean MODE_BIN = false;	
 	
 	private WebDAVhandler httpHandler;
 
@@ -32,7 +34,10 @@ public class SendToServer extends Activity {
 	public void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 		Log.d(TAG, "Activity started");
-
+		//just for debug reasons kill all ld notifications:
+		//NotificationManager notificationManager = (NotificationManager) getApplicationContext().getSystemService(getApplicationContext().NOTIFICATION_SERVICE);
+		//notificationManager.cancel(42);
+		
 		// read preferences
 		SharedPreferences settings = getSharedPreferences(ConfigWebDAV.PREFS_PRIVATE, Context.MODE_PRIVATE);
 		String serverURI = settings.getString(ConfigWebDAV.KEY_SERVER_URI, "https://");
@@ -83,8 +88,7 @@ public class SendToServer extends Activity {
 							e.printStackTrace();
 						}
 					}
-				}
-				
+				}				
 				this.finish();
 				
 			// binary files
@@ -127,10 +131,13 @@ public class SendToServer extends Activity {
 					Toast.makeText(this, this.getString(R.string.app_name) + ": " + this.getString(R.string.data_sending), Toast.LENGTH_SHORT).show();
 					Log.d(TAG, "Start SendThread");
 					new SendThread(handler, basename, "", filePath, fileType, (files.size()>1)).start();
-				}
-				
+				}				
 				this.finish(); // seems to work fine here (ie. the thread does continue and also reports success/failure)
 			}	
+		}
+		else if(intent.getAction().equals(Intent.ACTION_DELETE)){
+			//TODO place code to abort upload here
+			Log.d(TAG,"Abort Upload");
 		}
 		Log.d(TAG, "Activity closed");
 	}
@@ -168,11 +175,11 @@ public class SendToServer extends Activity {
         String name, path, localPath, type, data;
         Notification notification;
         NotificationManager notificationManager;        
-        //Intent intent = new Intent(Intent.ACTION_DELETE, new URI(name), SendToServer.this.getApplicationContext(), SendToServer.class);
-        Intent selfIntent = new Intent();// = new Intent(SendToServer.this.getApplicationContext(), SendToServer.class);   
-        PendingIntent pendingSelfIntent;// = PendingIntent.getActivity(getApplicationContext(), 0, this.selfIntent, 0);
+        Intent selfIntent = new Intent();
+        PendingIntent pendingSelfIntent;
         
-        boolean subsequentCalls;
+        private boolean subsequentCalls;
+        private boolean uploadType;
         
         // for URLs
         public SendThread(Handler h, String name, String path, String data) {
@@ -181,17 +188,19 @@ public class SendToServer extends Activity {
 			this.name = name;
 			this.path = path;
 			this.data = data;
+			this.uploadType = MODE_URL;
 			
 		}
         
         // for binary files
-        SendThread(Handler h, String name, String path, String localPath, String type, boolean subsequentCalls) {
+        public SendThread(Handler h, String name, String path, String localPath, String type, boolean subsequentCalls) {
         	Log.d(TAG, "SendThread Constructor(BIN) called");
             mHandler = h;
             this.name= name;
             this.path = path;
             this.localPath = localPath;
             this.type = type;
+            this.uploadType = MODE_BIN;
             
             int progress = 10;    
             
@@ -216,7 +225,7 @@ public class SendToServer extends Activity {
             this.notification.contentView.setProgressBar(R.id.status_progress, 100, progress, false);            
 
             this.notificationManager.notify(42, notification);
-
+            //TODO create unique ID per upload to allow multiple parallel notifications
             this.subsequentCalls = subsequentCalls;
 
         }
@@ -224,19 +233,25 @@ public class SendToServer extends Activity {
         public void run() {
         	
         	try {
-        		this.notification.contentView.setProgressBar(R.id.status_progress, 100, 30, false); 
-                this.notificationManager.notify(42, notification);                		
-                
-                if (localPath != null)
-                	httpHandler.putBinFile(name, path, localPath, type, subsequentCalls);   
-
-        		if (data != null)
-        			httpHandler.putFile(name, path, data);
+        		if (this.uploadType == MODE_BIN) {
+        			this.notification.contentView.setProgressBar(R.id.status_progress, 100, 30, false); 
+        			this.notificationManager.notify(42, notification);    
+        			if (localPath != null)
+        				httpHandler.putBinFile(name, path, localPath, type, subsequentCalls);
+        			else
+        				Log.e(TAG,"No local Path for send thread!");
+        		} else {
+        			if (data != null)
+        				httpHandler.putFile(name, path, data);
+        			else
+        				Log.e(TAG,"No data for send thread!");
+        		}
         		
-        		this.notification.contentView.setProgressBar(R.id.status_progress, 100, 90, false);                
-                this.notificationManager.notify(42, notification);
-                
-                notificationManager.cancel(42);
+        		if (this.uploadType == MODE_BIN) {
+        			this.notification.contentView.setProgressBar(R.id.status_progress, 100, 90, false);                
+        			this.notificationManager.notify(42, notification);        		        		
+        			notificationManager.cancel(42);
+        		}
 
         	} catch (Exception e) {
         		// can be:

@@ -7,6 +7,9 @@ import java.util.ArrayList;
 import java.util.Date;
 
 import android.app.Activity;
+import android.app.Notification;
+import android.app.NotificationManager;
+import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
@@ -17,10 +20,13 @@ import android.os.Handler;
 import android.os.Message;
 import android.provider.MediaStore;
 import android.util.Log;
+import android.widget.RemoteViews;
 import android.widget.Toast;
 
 public class SendToServer extends Activity {
 	private final String TAG = this.getClass().getName();
+	private static final boolean MODE_URL = true;
+	private static final boolean MODE_BIN = false;	
 	
 	private WebDAVhandler httpHandler;
 
@@ -28,7 +34,10 @@ public class SendToServer extends Activity {
 	public void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 		Log.d(TAG, "Activity started");
-
+		//just for debug reasons kill all ld notifications:
+		//NotificationManager notificationManager = (NotificationManager) getApplicationContext().getSystemService(getApplicationContext().NOTIFICATION_SERVICE);
+		//notificationManager.cancel(42);
+		
 		// read preferences
 		SharedPreferences settings = getSharedPreferences(ConfigWebDAV.PREFS_PRIVATE, Context.MODE_PRIVATE);
 		String serverURI = settings.getString(ConfigWebDAV.KEY_SERVER_URI, "https://");
@@ -50,6 +59,8 @@ public class SendToServer extends Activity {
 		httpHandler.setTrustAllSSLCerts(trustAllSSLCerts);
 
 		Intent intent = getIntent();
+		Log.d(TAG, "Delivered Intent: " + intent.toString());
+		
 		Bundle extras = intent.getExtras();
 		
 		if ((intent.getAction().equals(Intent.ACTION_SEND) || intent.getAction().equals(Intent.ACTION_SEND_MULTIPLE)) 
@@ -77,8 +88,7 @@ public class SendToServer extends Activity {
 							e.printStackTrace();
 						}
 					}
-				}
-				
+				}				
 				this.finish();
 				
 			// binary files
@@ -102,7 +112,7 @@ public class SendToServer extends Activity {
 					String fileType = "";
 					
 					//debug
-					Log.d(TAG, contentUri.toString());
+					Log.d(TAG, "ContentURI :" + contentUri.toString());
 					
 					// there are real file system paths and logical content URIs
 					if (contentUri.toString().startsWith("content:")) {
@@ -119,11 +129,15 @@ public class SendToServer extends Activity {
 					
 					// sending files may take time, so do it in another thread
 					Toast.makeText(this, this.getString(R.string.app_name) + ": " + this.getString(R.string.data_sending), Toast.LENGTH_SHORT).show();
+					Log.d(TAG, "Start SendThread");
 					new SendThread(handler, basename, "", filePath, fileType, (files.size()>1)).start();
-				}
-				
+				}				
 				this.finish(); // seems to work fine here (ie. the thread does continue and also reports success/failure)
 			}	
+		}
+		else if(intent.getAction().equals(Intent.ACTION_DELETE)){
+			//TODO place code to abort upload here
+			Log.d(TAG,"Abort Upload");
 		}
 		Log.d(TAG, "Activity closed");
 	}
@@ -159,33 +173,86 @@ public class SendToServer extends Activity {
 	private class SendThread extends Thread {
         Handler mHandler;
         String name, path, localPath, type, data;
-        boolean subsequentCalls;
+        Notification notification;
+        NotificationManager notificationManager;        
+        Intent selfIntent = new Intent();
+        PendingIntent pendingSelfIntent;
+        
+        private boolean subsequentCalls;
+        private boolean uploadType;
         
         // for URLs
         public SendThread(Handler h, String name, String path, String data) {
+        	Log.d(TAG, "SendThread Constructor(URL) called");
 			mHandler = h;
 			this.name = name;
 			this.path = path;
 			this.data = data;
+			this.uploadType = MODE_URL;
+			
 		}
         
         // for binary files
-        SendThread(Handler h, String name, String path, String localPath, String type, boolean subsequentCalls) {
+        public SendThread(Handler h, String name, String path, String localPath, String type, boolean subsequentCalls) {
+        	Log.d(TAG, "SendThread Constructor(BIN) called");
             mHandler = h;
             this.name= name;
             this.path = path;
             this.localPath = localPath;
             this.type = type;
+            this.uploadType = MODE_BIN;
+            
+            int progress = 10;    
+            
+            this.selfIntent.setAction(Intent.ACTION_DELETE);
+            Log.d(TAG, "Intent Action set");
+			this.selfIntent.setClass(SendToServer.this.getApplicationContext(), SendToServer.class);
+			Log.d(TAG, "Intent created, category: ");
+			//this.intent = new Intent(SendToServer.this.getApplicationContext(), SendToServer.class);
+			this.pendingSelfIntent = PendingIntent.getActivity(getApplicationContext(), 0, this.selfIntent, 0);
+			Log.d(TAG, "pendingIntent created");
+			
+            this.notificationManager = (NotificationManager) getApplicationContext().getSystemService(getApplicationContext().NOTIFICATION_SERVICE);
+            
+            this.notification = new Notification(R.drawable.icon, String.format("Sending %s",name), System.currentTimeMillis());
+            this.notification.setLatestEventInfo(getApplicationContext(), "SendToWebDAV", String.format("Uploading %s to WebDAV", name), this.pendingSelfIntent);
+            this.notification.flags = notification.flags | Notification.FLAG_ONGOING_EVENT | Notification.FLAG_ONLY_ALERT_ONCE;
+            this.notification.contentView = new RemoteViews(getApplicationContext().getPackageName(), R.layout.download_progress);
+            //this.notification.defaults = Notification.DEFAULT_ALL; //default vibrate, lights and sound
+
+            this.notification.contentView.setImageViewResource(R.id.status_icon, R.drawable.icon);
+            this.notification.contentView.setTextViewText(R.id.status_text, String.format("Uploading %s to WebDAV", name));
+            this.notification.contentView.setProgressBar(R.id.status_progress, 100, progress, false);            
+
+            this.notificationManager.notify(42, notification);
+            //TODO create unique ID per upload to allow multiple parallel notifications
             this.subsequentCalls = subsequentCalls;
+
         }
        
         public void run() {
         	
         	try {
-        		if (localPath != null)
-        			httpHandler.putBinFile(name, path, localPath, type, subsequentCalls);
-        		if (data != null)
-        			httpHandler.putFile(name, path, data);
+        		if (this.uploadType == MODE_BIN) {
+        			this.notification.contentView.setProgressBar(R.id.status_progress, 100, 30, false); 
+        			this.notificationManager.notify(42, notification);    
+        			if (localPath != null)
+        				httpHandler.putBinFile(name, path, localPath, type, subsequentCalls);
+        			else
+        				Log.e(TAG,"No local Path for send thread!");
+        		} else {
+        			if (data != null)
+        				httpHandler.putFile(name, path, data);
+        			else
+        				Log.e(TAG,"No data for send thread!");
+        		}
+        		
+        		if (this.uploadType == MODE_BIN) {
+        			this.notification.contentView.setProgressBar(R.id.status_progress, 100, 90, false);                
+        			this.notificationManager.notify(42, notification);        		        		
+        			notificationManager.cancel(42);
+        		}
+
         	} catch (Exception e) {
         		// can be:
         		// - ClientProtocolException:

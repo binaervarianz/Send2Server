@@ -80,7 +80,7 @@ public class ConfigWebDAV extends Activity {
 				InputStream stream = null;
 				long length = 0L;
 				try {
-					stream = assetManager.open("SendToWebDAV.php");
+					stream = assetManager.open("Send2Server.php");
 					
 					// ugly construct to get the length of the InputStream/file
 					long skip = 1L;
@@ -88,9 +88,9 @@ public class ConfigWebDAV extends Activity {
 						skip = stream.skip(Integer.MAX_VALUE);
 						length += skip;
 					} 
-					stream =  assetManager.open("SendToWebDAV.php"); // reset the stream
+					stream =  assetManager.open("Send2Server.php"); // reset the stream
 					
-					new SendThread(handler, "SendToWebDAV.php.txt", "php", stream, length).start();
+					new SendThread(handler, "Send2Server.php.txt", "server", stream, length).start();
 				} catch (IOException e) {
 					Log.d(TAG, e.getClass().getSimpleName() + ": " + e.getMessage());
 				} finally {

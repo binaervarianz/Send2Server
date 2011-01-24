@@ -2,9 +2,9 @@
 <resources>
     <string name="Server">WebDAV server path and folder:</string>
     <string name="ServerDefault">https://</string>
-    <string name="app_name">#SendToServer</string>
-    <string name="config_app_name">Configure SendToServer</string>
-	<string name="User">Username:</string>
+    <string name="app_name">#Send2Server</string>
+    <string name="config_app_name">Send2Server Config</string>
+	<string name="User">User name:</string>
 	<string name="Pass">Password:</string>
 	<string name="saveButton">Save</string>
 	<string name="testButton">Test</string>
@@ -22,4 +22,5 @@
 	<string name="server_deployed">Server component deployed!</string>
 	<string name="server_not_deployed">Server component NOT deployed!</string>
 	<string name="deploy_progress">Deploying Server Component. Please wait...</string>
+	<string name="delpoyServerText">The optional server component offers an RSS feed for the data you share. Follow the instructions in server/SendToServer.php.txt.</string>
 </resources>

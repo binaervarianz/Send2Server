@@ -1,13 +1,18 @@
 <?php
 // ------------------------
-// Install
+// # Install
 // ------------------------
 // 1. configure the parameters below appropriately.
 // 2. copy this file to somewhere outside of the WebDAV directory provided
 //    below where your webserver can execute PHP files.
-// 3. rename the the file to SendToWebDAV.php (ie. remove the .txt at the end).
+// 3. rename the the file to Send2Server.php (ie. remove the .txt at the end).
 // ------------------------
-
+//
+// ------------------------
+// # Requirements
+// ------------------------
+// - PHP-enabled web space
+// ------------------------
 
 // ------------------------
 // Configuration parameters
@@ -26,7 +31,7 @@ $server = $protocol.$_SERVER['HTTP_HOST'];
 <rss version="2.0">
 
 <channel>
-<title>SendToServer Feed</title>
+<title>Send2Server Feed</title>
 <link><?php echo $server.$_SERVER['REQUEST_URI']; ?></link>
 <description>Feed of all uploaded links and files</description>
 <language>en</language>

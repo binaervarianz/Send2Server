@@ -15,9 +15,11 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.database.Cursor;
 import android.net.Uri;
+import android.net.TrafficStats;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
+import android.os.Process;
 import android.provider.MediaStore;
 import android.util.Log;
 import android.widget.RemoteViews;
@@ -29,6 +31,8 @@ public class SendToServer extends Activity {
 	private static final boolean MODE_BIN = false;	
 	
 	private WebDAVhandler httpHandler;
+	private CountThread countThread;
+	private SendThread sendThread;
 
 	@Override
 	public void onCreate(Bundle savedInstanceState) {
@@ -79,7 +83,8 @@ public class SendToServer extends Activity {
 				}
 				
 				for (String url : urls) {
-					new SendThread(handler, "URL-"+dateFormater.format(new Date())+".txt", "", url).start();
+					this.sendThread = new SendThread(handler, "URL-"+dateFormater.format(new Date())+".txt", "", url);
+					this.sendThread.start();
 					
 					if (urls.size() > 1) {
 						try {
@@ -130,13 +135,20 @@ public class SendToServer extends Activity {
 					// sending files may take time, so do it in another thread
 					Toast.makeText(this, this.getString(R.string.app_name) + ": " + this.getString(R.string.data_sending), Toast.LENGTH_SHORT).show();
 					Log.d(TAG, "Start SendThread");
-					new SendThread(handler, basename, "", filePath, fileType, (files.size()>1)).start();
+					this.sendThread = new SendThread(handler, basename, "", filePath, fileType, (files.size()>1));
+					this.countThread = new CountThread(handler, basename);
+					this.countThread.start();
+					this.sendThread.start();
+					
 				}				
 				this.finish(); // seems to work fine here (ie. the thread does continue and also reports success/failure)
 			}	
 		}
 		else if(intent.getAction().equals(Intent.ACTION_DELETE)){
-			//TODO place code to abort upload here
+			//TODO give a 'are you sure' dialog here
+			//code below doesn't work; intent starts new activity, no access to original threads via member variables
+			//this.sendThread.interrupt();
+			//this.countThread.interrupt();
 			Log.d(TAG,"Abort Upload");
 		}
 		Log.d(TAG, "Activity closed");
@@ -163,6 +175,8 @@ public class SendToServer extends Activity {
         public void handleMessage(Message msg) {
         	if (msg.what == 0) {
         		Toast.makeText(SendToServer.this, getString(R.string.app_name) + ": " + getString(R.string.data_send), Toast.LENGTH_LONG).show();
+        		// TODO: Hijacking this for normal finish procedure, maybe giving it an own msg?
+        		SendToServer.this.countThread.stopCount();
         	} else {
         		Toast.makeText(SendToServer.this, getString(R.string.app_name) + ": " + getString(R.string.data_sending_failure) + ": /r/n" + (String)msg.obj, Toast.LENGTH_LONG).show();
         	}
@@ -172,12 +186,7 @@ public class SendToServer extends Activity {
     
 	private class SendThread extends Thread {
         Handler mHandler;
-        String name, path, localPath, type, data;
-        Notification notification;
-        NotificationManager notificationManager;        
-        Intent selfIntent = new Intent();
-        PendingIntent pendingSelfIntent;
-        
+        String name, path, localPath, type, data;       
         private boolean subsequentCalls;
         private boolean uploadType;
         
@@ -200,10 +209,77 @@ public class SendToServer extends Activity {
             this.path = path;
             this.localPath = localPath;
             this.type = type;
-            this.uploadType = MODE_BIN;
-            
-            int progress = 10;    
-            
+            this.uploadType = MODE_BIN;   
+
+            //TODO create unique ID per upload to allow multiple parallel notifications
+            this.subsequentCalls = subsequentCalls;            
+        }
+       
+        
+        public void run() {        	
+        	try {
+        		if (this.uploadType == MODE_BIN) {        			   
+        			if (localPath != null)
+        				httpHandler.putBinFile(name, path, localPath, type, subsequentCalls);
+        			else
+        				Log.e(TAG,"No local Path for send thread!");
+        		} else {
+        			if (data != null)
+        				httpHandler.putFile(name, path, data);
+        			else
+        				Log.e(TAG,"No data for send thread!");
+        		} 
+        	} catch (Exception e) {
+        		// can be:
+        		// - ClientProtocolException:
+        		// - IOException
+        		// - IllegalArgumentException: invalid URL supplied (e.g. only "https://")
+        		// - HttpException: HTTP response status codes >= 400
+        		Log.e(TAG, e.getClass().getSimpleName() + ": " + e.getMessage());
+        		
+        		Message msg = mHandler.obtainMessage();
+        		msg.obj = e.getClass().getSimpleName() + ": " + e.getLocalizedMessage();
+                msg.what = 1;
+                mHandler.sendMessage(msg);
+        		return;
+        	}
+        	//after this has been run, the data is sent
+        	mHandler.sendEmptyMessage(0);
+        }
+    }
+	
+/**
+ * parallel running thread to count the bytes sent by this process' user and update to notification area
+ * @author chaos
+ *
+ */
+	private class CountThread extends Thread {
+        Handler mHandler;        
+        Notification notification;
+        NotificationManager notificationManager;        
+        TrafficStats stats = new TrafficStats();
+        Process proc;
+        int uid;
+        long txbytes;
+                     
+        Intent selfIntent = new Intent();
+        PendingIntent pendingSelfIntent;
+        int progress = 10;   
+        boolean stopThis;
+        
+        /**
+         * Constructor creating the initial notification
+         * @param h the handler for messaging to the parent
+         * @param name name of the file being uploadet to be displayed in the notification
+         */
+        public CountThread(Handler h, String name) {
+        	Log.d(TAG, "CountThread Constructor called");        	
+        	this.proc = new Process();
+        	this.notificationManager = (NotificationManager) getApplicationContext().getSystemService(getApplicationContext().NOTIFICATION_SERVICE);
+			mHandler = h;
+			uid = proc.myUid();
+			this.stopThis = false;
+			
             this.selfIntent.setAction(Intent.ACTION_DELETE);
             Log.d(TAG, "Intent Action set");
 			this.selfIntent.setClass(SendToServer.this.getApplicationContext(), SendToServer.class);
@@ -222,52 +298,51 @@ public class SendToServer extends Activity {
 
             this.notification.contentView.setImageViewResource(R.id.status_icon, R.drawable.icon);
             this.notification.contentView.setTextViewText(R.id.status_text, String.format("Uploading %s to WebDAV", name));
-            this.notification.contentView.setProgressBar(R.id.status_progress, 100, progress, false);            
-
-            this.notificationManager.notify(42, notification);
-            //TODO create unique ID per upload to allow multiple parallel notifications
-            this.subsequentCalls = subsequentCalls;
-
-        }
-       
+            //this.notification.contentView.setProgressBar(R.id.status_progress, 100, progress, false);  
+			
+			}
+		
+        /**
+         * main function to be run, includes loop which updates the notification area with bytes sent by the current user
+         * Warnung: infinite loop within !!
+         */
         public void run() {
-        	
-        	try {
-        		if (this.uploadType == MODE_BIN) {
-        			this.notification.contentView.setProgressBar(R.id.status_progress, 100, 30, false); 
-        			this.notificationManager.notify(42, notification);    
-        			if (localPath != null)
-        				httpHandler.putBinFile(name, path, localPath, type, subsequentCalls);
-        			else
-        				Log.e(TAG,"No local Path for send thread!");
-        		} else {
-        			if (data != null)
-        				httpHandler.putFile(name, path, data);
-        			else
-        				Log.e(TAG,"No data for send thread!");
-        		}
-        		
-        		if (this.uploadType == MODE_BIN) {
-        			this.notification.contentView.setProgressBar(R.id.status_progress, 100, 90, false);                
-        			this.notificationManager.notify(42, notification);        		        		
-        			notificationManager.cancel(42);
-        		}
-
-        	} catch (Exception e) {
-        		// can be:
-        		// - ClientProtocolException:
-        		// - IOException
-        		// - IllegalArgumentException: invalid URL supplied (e.g. only "https://")
-        		// - HttpException: HTTP response status codes >= 400
-        		Log.e(TAG, e.getClass().getSimpleName() + ": " + e.getMessage());
-        		
-        		Message msg = mHandler.obtainMessage();
-        		msg.obj = e.getClass().getSimpleName() + ": " + e.getLocalizedMessage();
-                msg.what = 1;
-                mHandler.sendMessage(msg);
-        		return;
+        	long txbytesstart = this.stats.getUidTxBytes(this.uid);
+        	while (! this.stopThis) {				
+				txbytes = this.stats.getUidTxBytes(this.uid) - txbytesstart;
+				
+				if (txbytes > 1000)
+					this.notification.contentView.setTextViewText(R.id.status_text, String.format("Bytes sent: %d kB", txbytes/1000));
+				else if (txbytes > (1000 * 1000 * 10))
+					this.notification.contentView.setTextViewText(R.id.status_text, String.format("Bytes sent: %d MB", txbytes/(1000*1000)));
+				else
+					this.notification.contentView.setTextViewText(R.id.status_text, String.format("Bytes sent: %d B", txbytes));
+				
+				//this.notification.contentView.setProgressBar(R.id.status_progress, (i/12)*100, progress, false); 
+				this.notificationManager.notify(42, this.notification);
+				Log.d(TAG, String.format("Sent Bytes: %d",txbytes));
+				try {
+					sleep(200);
+				}
+				catch (InterruptedException e){
+					Log.e(TAG, e.getClass().getSimpleName() + ": " + e.getMessage());
+	        		
+	        		Message msg = mHandler.obtainMessage();
+	        		msg.obj = e.getClass().getSimpleName() + ": " + e.getLocalizedMessage();
+	                msg.what = 1;
+	                mHandler.sendMessage(msg);
+	        		break;
+				}
         	}
-        	mHandler.sendEmptyMessage(0);
         }
-    }
+        /**
+         * to be called from parent object to stop the notification
+         */
+        public void stopCount(){
+        	this.stopThis = true;
+        	this.notificationManager.cancel(42);
+        	Log.d(TAG, "Count stopped");
+        	
+        }
+	}
 }
